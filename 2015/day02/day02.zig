@@ -17,26 +17,26 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         const width = try utils.parseInt(edges_it.next().?);
         const height = try utils.parseInt(edges_it.next().?);
 
-        var faces: [3]i32 = undefined;
-        faces[0] = length * width;
-        faces[1] = length * height;
-        faces[2] = width * height;
-
-        for (faces) |face| result += 2 * face;
-        result += std.mem.min(i32, &faces);
+        var ribbons: [3]i32 = .{
+            2 * length + 2 * width,
+            2 * length + 2 * height,
+            2 * width + 2 * height,
+        };
+        result += std.mem.min(i32, &ribbons);
+        result += length * width * height;
     }
 
     return result;
 }
 
 test "2x3x4" {
-    const expected: i32 = 58;
+    const expected: i32 = 34;
     const result = try execute("2x3x4", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
 
 test "1x1x10" {
-    const expected: i32 = 43;
+    const expected: i32 = 14;
     const result = try execute("1x1x10", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
