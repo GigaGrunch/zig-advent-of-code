@@ -35,6 +35,11 @@ pub fn build(b: *std.Build) !void {
                 .optimize = optimize,
             });
 
+            const utils = b.createModule(.{
+                .source_file = .{ .path = "lib/utils.zig" },
+            });
+            exe.addModule("utils", utils);
+
             b.installArtifact(exe);
             const run_cmd = b.addRunArtifact(exe);
             run_cmd.step.dependOn(b.getInstallStep());
