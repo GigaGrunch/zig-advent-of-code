@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) !void {
 
             var tests_name = std.ArrayList(u8).init(gpa.allocator());
             defer tests_name.deinit();
-            try tests_name.writer().print("{s}.{s}.tests", .{ year, entry.name });
+            try tests_name.writer().print("{s}.{s}.test", .{ year, entry.name });
 
             const exe = b.addExecutable(.{
                 .name = exe_name.items,

@@ -16,6 +16,6 @@ pub fn main(execute: anytype) !void {
     const text = try std.fs.cwd().readFileAlloc(gpa.allocator(), input_file, 100000);
     defer gpa.allocator().free(text);
 
-    const result = try execute(text);
+    const result = try execute(text, gpa.allocator());
     std.debug.print("{d}\n", .{result});
 }

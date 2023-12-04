@@ -5,7 +5,8 @@ pub fn main() !void {
     try utils.main(&execute);
 }
 
-fn execute(text: []const u8) !i32 {
+fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+    _ = allocator;
     var sum: i32 = 0;
 
     var lines = std.mem.tokenizeAny(u8, text, "\r\n");
@@ -50,6 +51,6 @@ fn startsWith(a: []const u8, b: []const u8) bool {
 test {
     const text = @embedFile("example.txt");
     const expected: i32 = 281;
-    const result = try execute(text);
+    const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
