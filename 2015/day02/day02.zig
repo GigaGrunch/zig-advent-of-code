@@ -7,8 +7,26 @@ pub fn main() !void {
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     _ = allocator;
-    _ = text;
-    return 0;
+
+    var result: i32 = 0;
+
+    var lines_it = utils.tokenize(text, "\r\n");
+    while (lines_it.next()) |line| {
+        var edges_it = utils.tokenize(line, "x");
+        const length = try utils.parseInt(edges_it.next().?);
+        const width = try utils.parseInt(edges_it.next().?);
+        const height = try utils.parseInt(edges_it.next().?);
+
+        var faces: [3]i32 = undefined;
+        faces[0] = length * width;
+        faces[1] = length * height;
+        faces[2] = width * height;
+
+        for (faces) |face| result += 2 * face;
+        result += std.mem.min(i32, &faces);
+    }
+
+    return result;
 }
 
 test "2x3x4" {
