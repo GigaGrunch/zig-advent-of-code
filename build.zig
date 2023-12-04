@@ -7,6 +7,9 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const run_all_step = b.step("run", "Run all days");
+    const test_all_step = b.step("test", "Tests all days");
+
     const years: []const []const u8 = &.{ "2015", "2023" };
     for (years) |year| {
         var dir = try std.fs.cwd().openIterableDir(year, .{});
@@ -47,6 +50,7 @@ pub fn build(b: *std.Build) !void {
 
             const run_step = b.step(exe_name.items, "");
             run_step.dependOn(&run_cmd.step);
+            run_all_step.dependOn(&run_cmd.step);
 
             const unit_tests = b.addTest(.{
                 .root_source_file = .{ .path = source_path.items },
@@ -56,6 +60,7 @@ pub fn build(b: *std.Build) !void {
             const run_unit_tests = b.addRunArtifact(unit_tests);
             const test_step = b.step(tests_name.items, "");
             test_step.dependOn(&run_unit_tests.step);
+            test_all_step.dependOn(&run_unit_tests.step);
         }
     }
 }
