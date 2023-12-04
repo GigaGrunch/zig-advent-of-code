@@ -10,6 +10,10 @@ pub fn build(b: *std.Build) !void {
     const run_all_step = b.step("run", "Run all days");
     const test_all_step = b.step("test", "Tests all days");
 
+    const utils = b.createModule(.{
+        .source_file = .{ .path = "lib/utils.zig" },
+    });
+
     const years: []const []const u8 = &.{ "2015", "2023" };
     for (years) |year| {
         var dir = try std.fs.cwd().openIterableDir(year, .{});
@@ -37,10 +41,6 @@ pub fn build(b: *std.Build) !void {
                 .target = target,
                 .optimize = optimize,
             });
-
-            const utils = b.createModule(.{
-                .source_file = .{ .path = "lib/utils.zig" },
-            });
             exe.addModule("utils", utils);
 
             b.installArtifact(exe);
@@ -57,6 +57,7 @@ pub fn build(b: *std.Build) !void {
                 .target = target,
                 .optimize = optimize,
             });
+            unit_tests.addModule("utils", utils);
             const run_unit_tests = b.addRunArtifact(unit_tests);
             const test_step = b.step(tests_name.items, "");
             test_step.dependOn(&run_unit_tests.step);

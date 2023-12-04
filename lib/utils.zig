@@ -23,3 +23,11 @@ pub fn main(execute: *const fn ([]const u8, std.mem.Allocator) anyerror!i32) !vo
     const result = try execute(text, gpa.allocator());
     std.debug.print("{d}\n", .{result});
 }
+
+pub fn tokenize(text: []const u8, delimiters: []const u8) std.mem.TokenIterator(u8, .any) {
+    return std.mem.tokenizeAny(u8, text, delimiters);
+}
+
+pub fn parseInt(text: []const u8) !i32 {
+    return try std.fmt.parseInt(i32, text, 10);
+}
