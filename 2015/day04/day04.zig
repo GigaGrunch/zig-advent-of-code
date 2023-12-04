@@ -7,25 +7,19 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var string = std.ArrayList(u8).init(allocator);
-    defer string.deinit();
+    _ = allocator;
 
-    var hash_string = std.ArrayList(u8).init(allocator);
-    defer hash_string.deinit();
+    var hash_buffer: [md5.digest_length]u8 = undefined;
+    var string = [_]u8 {0} ** 1000;
+    std.mem.copy(u8, &string, text);
 
     var number: i32 = 1;
     while (true):(number += 1) {
-        string.clearRetainingCapacity();
-        hash_string.clearRetainingCapacity();
+        const digits = std.fmt.formatIntBuf(string[text.len..], number, 10, .lower, .{});
 
-        try string.writer().print("{s}{d}", .{ text, number });
+        md5.hash(string[0..text.len + digits], &hash_buffer, .{});
 
-        var hash_buffer: [md5.digest_length]u8 = undefined;
-        md5.hash(string.items, &hash_buffer, .{});
-
-        try hash_string.writer().print("{s:0>32}", .{ std.fmt.fmtSliceHexLower(&hash_buffer) });
-        
-        if (std.mem.startsWith(u8, hash_string.items, "000000")) {
+        if (hash_buffer[0] == 0 and hash_buffer[1] == 0 and hash_buffer[2] == 0) {
             return number;
         }
     }
