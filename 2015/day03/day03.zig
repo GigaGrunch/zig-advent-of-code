@@ -9,21 +9,26 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var visited = std.ArrayList(Pos).init(allocator);
     defer visited.deinit();
 
-    var pos = Pos{ .x = 0, .y = 0 };
-    try visited.append(pos);
+    var santa_pos = Pos{ .x = 0, .y = 0 };
+    var robot_pos = Pos{ .x = 0, .y = 0 };
+    try visited.append(santa_pos);
 
+    var santa_is_next = true;
     for (text) |char| {
+        var ptr = if (santa_is_next) &santa_pos else &robot_pos;
         switch (char) {
-            '<' => pos.x -= 1,
-            '>' => pos.x += 1,
-            '^' => pos.y += 1,
-            'v' => pos.y -= 1,
+            '<' => ptr.*.x -= 1,
+            '>' => ptr.*.x += 1,
+            '^' => ptr.*.y += 1,
+            'v' => ptr.*.y -= 1,
             else => unreachable,
         }
 
-        if (!utils.contains(visited.items, pos)) {
-            try visited.append(pos);
+        if (!utils.contains(visited.items, ptr.*)) {
+            try visited.append(ptr.*);
         }
+
+        santa_is_next = !santa_is_next;
     }
 
     return @as(i32, @intCast(visited.items.len));
@@ -34,14 +39,14 @@ const Pos = struct {
     y: i32,
 };
 
-test ">" {
-    try runTest(">", 2);
+test "^v" {
+    try runTest("^v", 3);
 }
 test "^>v<" {
-    try runTest("^>v<", 4);
+    try runTest("^>v<", 3);
 }
 test "^v^v^v^v^v" {
-    try runTest("^v^v^v^v^v", 2);
+    try runTest("^v^v^v^v^v", 11);
 }
 
 fn runTest(text: []const u8, expected: i32) !void {
