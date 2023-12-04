@@ -31,3 +31,8 @@ pub fn tokenize(text: []const u8, delimiters: []const u8) std.mem.TokenIterator(
 pub fn parseInt(text: []const u8) !i32 {
     return try std.fmt.parseInt(i32, text, 10);
 }
+
+pub fn contains(haystack: anytype, needle: anytype) bool {
+    for (haystack) |element| if (std.meta.eql(element, needle)) return true;
+    return false;
+}
