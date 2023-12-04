@@ -16,11 +16,11 @@ pub fn main() !void {
     const text = try std.fs.cwd().readFileAlloc(gpa.allocator(), input_file, 100000);
     defer gpa.allocator().free(text);
 
-    const result = execute(text);
+    const result = try execute(text);
     std.debug.print("{d}\n", .{result});
 }
 
-fn execute(text: []const u8) i32 {
+fn execute(text: []const u8) !i32 {
     var sum: i32 = 0;
 
     var lines = std.mem.tokenizeAny(u8, text, "\r\n");
@@ -65,6 +65,6 @@ fn startsWith(a: []const u8, b: []const u8) bool {
 test {
     const text = @embedFile("example.txt");
     const expected: i32 = 281;
-    const result = execute(text);
+    const result = try execute(text);
     try std.testing.expectEqual(expected, result);
 }
