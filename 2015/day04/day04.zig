@@ -25,22 +25,10 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
         try hash_string.writer().print("{s:0>32}", .{ std.fmt.fmtSliceHexLower(&hash_buffer) });
         
-        if (std.mem.startsWith(u8, hash_string.items, "00000")) {
+        if (std.mem.startsWith(u8, hash_string.items, "000000")) {
             return number;
         }
     }
 
     unreachable;
-}
-
-test "abcdef" {
-    const expected: i32 = 609043;
-    const result = try execute("abcdef", std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
-}
-
-test "pqrstuv" {
-    const expected: i32 = 1048970;
-    const result = try execute("pqrstuv", std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
 }
