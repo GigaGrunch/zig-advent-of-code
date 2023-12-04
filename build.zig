@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const years: []const []const u8 = &.{"2023"};
+    const years: []const []const u8 = &.{ "2015", "2023" };
     for (years) |year| {
         var dir = try std.fs.cwd().openIterableDir(year, .{});
         var dir_it = dir.iterate();

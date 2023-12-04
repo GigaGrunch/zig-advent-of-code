@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn main(execute: anytype) !void {
+pub fn main(execute: *const fn ([]const u8, std.mem.Allocator) anyerror!i32) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
