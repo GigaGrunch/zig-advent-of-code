@@ -20,11 +20,16 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
                 const values = parts_it.next().?;
                 var values_it = utils.tokenize(values, " ");
-                while (values_it.next()) |value| {
-                    try current_values.append(.{
-                        .number = try parseInt(value),
-                        .converted = false,
-                    });
+                while (values_it.next()) |range_start_string| {
+                    const range_start = try parseInt(range_start_string);
+                    const range_length = try parseInt(values_it.next().?);
+
+                    for (0..@intCast(range_length)) |i| {
+                        try current_values.append(.{
+                            .number = range_start + @as(i64, @intCast(i)),
+                            .converted = false,
+                        });
+                    }
                 }
             } else if (utils.endsWith(prefix, "map")) {
                 for (current_values.items) |*value| {
@@ -72,7 +77,7 @@ const Value = struct {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 35;
+    const expected: i32 = 46;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
