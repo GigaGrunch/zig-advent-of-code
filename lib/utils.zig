@@ -44,3 +44,7 @@ pub fn startsWith(haystack: []const u8, needle: []const u8) bool {
 pub fn endsWith(haystack: []const u8, needle: []const u8) bool {
     return std.mem.endsWith(u8, haystack, needle);
 }
+
+pub fn streql(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
