@@ -6,7 +6,7 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var current_values = std.ArrayList(i64).init(allocator);
+    var current_values = std.ArrayList(Value).init(allocator);
     defer current_values.deinit();
 
     var lines_it = utils.tokenize(text, "\r\n");
@@ -16,26 +16,59 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             const prefix = parts_it.next().?;
 
             if (utils.streql(prefix, "seeds")) {
+                std.debug.assert(current_values.items.len == 0);
+
                 const values = parts_it.next().?;
                 var values_it = utils.tokenize(values, " ");
                 while (values_it.next()) |value| {
-                    const number = try std.fmt.parseInt(i64, value, 10);
-                    try current_values.append(number);
+                    try current_values.append(.{
+                        .number = try parseInt(value),
+                        .converted = false,
+                    });
                 }
             } else if (utils.endsWith(prefix, "map")) {
-                std.debug.assert(current_values.items.len > 0);
-                // new map
+                for (current_values.items) |*value| {
+                    value.converted = false;
+                }
             } else {
                 unreachable;
             }
         } else {
             std.debug.assert(current_values.items.len > 0);
-            // values
+            var values_it = utils.tokenize(line, " ");
+            const dest_start = try parseInt(values_it.next().?);
+            const source_start = try parseInt(values_it.next().?);
+            const length = try parseInt(values_it.next().?);
+
+            for (current_values.items) |*value| {
+                if (value.converted) continue;
+                if (value.number >= source_start and value.number < source_start + length) {
+                    const offset = value.number - source_start;
+                    const old_number = value.number;
+                    _ = old_number;
+                    value.number = dest_start + offset;
+                    value.converted = true;
+                }
+            }
         }
     }
 
-    return 0;
+    var min: i64 = std.math.maxInt(i64);
+    for (current_values.items) |value| {
+        min = @min(min, value.number);
+    }
+
+    return @as(i32, @intCast(min));
 }
+
+pub fn parseInt(text: []const u8) !i64 {
+    return try std.fmt.parseInt(i64, text, 10);
+}
+
+const Value = struct {
+    number: i64,
+    converted: bool,
+};
 
 test {
     const text = @embedFile("example.txt");
