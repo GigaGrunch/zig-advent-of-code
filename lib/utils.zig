@@ -36,3 +36,11 @@ pub fn contains(haystack: anytype, needle: anytype) bool {
     for (haystack) |element| if (std.meta.eql(element, needle)) return true;
     return false;
 }
+
+pub fn startsWith(haystack: []const u8, needle: []const u8) bool {
+    return std.mem.startsWith(u8, haystack, needle);
+}
+
+pub fn endsWith(haystack: []const u8, needle: []const u8) bool {
+    return std.mem.endsWith(u8, haystack, needle);
+}
