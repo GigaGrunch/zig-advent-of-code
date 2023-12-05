@@ -6,8 +6,8 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var maps = std.ArrayList(Map).init(allocator);
-    defer maps.deinit();
+    var current_values = std.ArrayList(i64).init(allocator);
+    defer current_values.deinit();
 
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
@@ -15,40 +15,27 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             var parts_it = utils.tokenize(line, ":");
             const prefix = parts_it.next().?;
 
-            if (utils.endsWith(prefix, "map")) {
-                var prefix_it = utils.tokenize(prefix, " ");
-                const map_name = prefix_it.next().?;
-
-                var name_it = utils.tokenize(map_name, "-");
-                const from = name_it.next().?;
-                std.debug.assert(utils.streql(name_it.next().?, "to"));
-                const to = name_it.next().?;
-
-                try maps.append(.{
-                    .from = from,
-                    .to = to,
-                });
-            } else if (utils.streql(prefix, "seeds")) {
-                // seeds
+            if (utils.streql(prefix, "seeds")) {
+                const values = parts_it.next().?;
+                var values_it = utils.tokenize(values, " ");
+                while (values_it.next()) |value| {
+                    const number = try std.fmt.parseInt(i64, value, 10);
+                    try current_values.append(number);
+                }
+            } else if (utils.endsWith(prefix, "map")) {
+                std.debug.assert(current_values.items.len > 0);
+                // new map
             } else {
                 unreachable;
             }
         } else {
+            std.debug.assert(current_values.items.len > 0);
             // values
         }
     }
 
-    for (maps.items) |map| {
-        std.debug.print("{s} -> {s}\n", .{ map.from, map.to });
-    }
-
     return 0;
 }
-
-const Map = struct {
-    from: []const u8,
-    to: []const u8,
-};
 
 test {
     const text = @embedFile("example.txt");
