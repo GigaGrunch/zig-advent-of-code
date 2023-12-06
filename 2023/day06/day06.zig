@@ -23,7 +23,22 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     std.debug.assert(utils.streql(records_it.next().?, "Distance:"));
     while (records_it.next()) |record| try records.append(try utils.parseInt(record));
 
-    return 0;
+    var result: i32 = 1;
+
+    for (times.items, records.items) |time, record| {
+        var num_winning_games: i32 = 0;
+
+        for (1..@intCast(time)) |hold_time| {
+            const travel_time = time - @as(i32, @intCast(hold_time));
+            const velocity = @as(i32, @intCast(hold_time));
+            const distance = velocity * travel_time;
+            if (distance > record) num_winning_games += 1;
+        }
+
+        result *= num_winning_games;
+    }
+
+    return result;
 }
 
 test {
