@@ -32,7 +32,23 @@ pub fn parseInt(text: []const u8) !i32 {
     return try std.fmt.parseInt(i32, text, 10);
 }
 
-pub fn contains(haystack: anytype, needle: anytype) bool {
+pub fn containsItem(haystack: anytype, needle: anytype) bool {
     for (haystack) |element| if (std.meta.eql(element, needle)) return true;
     return false;
+}
+
+pub fn containsString(haystack: []const u8, needle: []const u8) bool {
+    return std.mem.containsAtLeast(u8, haystack, 1, needle);
+}
+
+pub fn startsWith(haystack: []const u8, needle: []const u8) bool {
+    return std.mem.startsWith(u8, haystack, needle);
+}
+
+pub fn endsWith(haystack: []const u8, needle: []const u8) bool {
+    return std.mem.endsWith(u8, haystack, needle);
+}
+
+pub fn streql(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
 }

@@ -24,7 +24,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             else => unreachable,
         }
 
-        if (!utils.contains(visited.items, ptr.*)) {
+        if (!utils.containsItem(visited.items, ptr.*)) {
             try visited.append(ptr.*);
         }
 
