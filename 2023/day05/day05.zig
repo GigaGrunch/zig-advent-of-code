@@ -34,8 +34,8 @@ fn parseSeeds(text: []const u8, ranges: *std.ArrayList(Range)) !void {
     var numbers_it = utils.tokenize(outer_it.next().?, " ");
     while (numbers_it.next()) |min_string| {
         const length_string = numbers_it.next().?;
-        const min = try parseInt(min_string);
-        const length = try parseInt(length_string);
+        const min = try utils.parseInt(i64, min_string);
+        const length = try utils.parseInt(i64, length_string);
         const max = min + length;
         try ranges.append(.{
             .min = min,
@@ -53,9 +53,9 @@ fn finalizeMap(ranges: []Range) !void {
 
 fn applyMapping(text: []const u8, ranges: *std.ArrayList(Range)) !void {
     var it = utils.tokenize(text, " ");
-    const dest_start = try parseInt(it.next().?);
-    const source_start = try parseInt(it.next().?);
-    const length = try parseInt(it.next().?);
+    const dest_start = try utils.parseInt(i64, it.next().?);
+    const source_start = try utils.parseInt(i64, it.next().?);
+    const length = try utils.parseInt(i64, it.next().?);
 
     const min = source_start;
     const max = source_start + length - 1;
@@ -93,10 +93,6 @@ fn applyMapping(text: []const u8, ranges: *std.ArrayList(Range)) !void {
     }
 
     try ranges.appendSlice(new_ranges.items);
-}
-
-fn parseInt(text: []const u8) !i64 {
-    return try std.fmt.parseInt(i64, text, 10);
 }
 
 const Range = struct {
