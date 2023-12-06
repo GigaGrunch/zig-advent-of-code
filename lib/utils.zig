@@ -28,8 +28,8 @@ pub fn tokenize(text: []const u8, delimiters: []const u8) std.mem.TokenIterator(
     return std.mem.tokenizeAny(u8, text, delimiters);
 }
 
-pub fn parseInt(text: []const u8) !i32 {
-    return try std.fmt.parseInt(i32, text, 10);
+pub fn parseInt(comptime T: type, text: []const u8) !T {
+    return try std.fmt.parseInt(T, text, 10);
 }
 
 pub fn containsItem(haystack: anytype, needle: anytype) bool {
