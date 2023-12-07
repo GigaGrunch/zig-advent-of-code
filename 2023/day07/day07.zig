@@ -8,8 +8,6 @@ pub fn main() !void {
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var hands = std.ArrayList(Hand).init(allocator);
     defer hands.deinit();
-    var bids = std.ArrayList(i32).init(allocator);
-    defer bids.deinit();
 
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
@@ -18,12 +16,14 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         try hands.append(.{
             .cards = cards,
             .type = getType(cards),
+            .bid = try utils.parseInt(i32, parts_it.next().?),
         });
-        try bids.append(try utils.parseInt(i32, parts_it.next().?));
     }
 
-    for (hands.items, bids.items) |hand, bid| {
-        std.debug.print("{} {s} {d}\n", .{ hand.type, hand.cards, bid });
+    std.mem.sort(Hand, hands.items, {}, strongerThan);
+
+    for (hands.items) |hand| {
+        std.debug.print("{} {s} {d}\n", .{ hand.type, hand.cards, hand.bid });
     }
 
     return 0;
@@ -32,7 +32,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 fn getType(hand: []const u8) HandType {
     var counts = [_]i32{0} ** card_types.len;
     for (hand) |card| {
-        const index = std.mem.indexOfScalar(u8, card_types, card).?;
+        const index = getCardIndex(card);
         counts[index] += 1;
     }
 
@@ -61,11 +61,27 @@ fn greaterThan(context: void, a: i32, b: i32) bool {
     return a > b;
 }
 
+fn strongerThan(context: void, a: Hand, b: Hand) bool {
+    _ = context;
+    if (a.type != b.type) return @intFromEnum(a.type) > @intFromEnum(b.type);
+    for (a.cards, b.cards) |a_card, b_card| {
+        if (a_card != b_card) return getCardIndex(a_card) > getCardIndex(b_card);
+    }
+    return false;
+}
+
 const card_types = "23456789TJQKA";
+fn getCardIndex(card: u8) usize {
+    inline for (card_types, 0..) |card_type, index| {
+        if (card == card_type) return index;
+    }
+    unreachable;
+}
 
 const Hand = struct {
     cards: []const u8,
     type: HandType,
+    bid: i32,
 };
 
 const HandType = enum {
