@@ -18,12 +18,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
 fn isNice(text: []const u8, allocator: std.mem.Allocator) !bool {
     var has_double_pair = false;
+    var has_distant_pair = false;
     var pairs = std.ArrayList([]const u8).init(allocator);
     defer pairs.deinit();
 
-    for (1..text.len) |i| {
+    for (0..text.len - 1) |i| {
         if (!has_double_pair) {
-            const pair = text[i - 1 .. i + 1];
+            const pair = text[i .. i + 2];
             for (pairs.items) |other| {
                 if (utils.streql(pair, other) and &pair[0] != &other[1]) {
                     has_double_pair = true;
@@ -32,9 +33,17 @@ fn isNice(text: []const u8, allocator: std.mem.Allocator) !bool {
             }
             try pairs.append(pair);
         }
+
+        if (!has_distant_pair and i < text.len - 2) {
+            const char = text[i];
+            const other = text[i + 2];
+            if (char == other) {
+                has_distant_pair = true;
+            }
+        }
     }
 
-    return has_double_pair;
+    return has_double_pair and has_distant_pair;
 }
 
 test "qjhvhtzxzqqjkmpb" {
