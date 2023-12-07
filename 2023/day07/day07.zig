@@ -31,14 +31,20 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 }
 
 fn getType(hand: []const u8) HandType {
+    var joker_count: i32 = 0;
     var counts = [_]i32{0} ** card_types.len;
     for (hand) |card| {
-        const index = getCardIndex(card);
-        counts[index] += 1;
+        if (card == 'J') {
+            joker_count += 1;
+        } else {
+            const index = getCardIndex(card);
+            counts[index] += 1;
+        }
     }
 
     std.mem.sort(i32, &counts, {}, greaterThan);
 
+    counts[0] += joker_count;
     return switch (counts[0]) {
         5 => .FiveOfAKind,
         4 => .FourOfAKind,
@@ -71,7 +77,7 @@ fn weakerThan(context: void, a: Hand, b: Hand) bool {
     return false;
 }
 
-const card_types = "23456789TJQKA";
+const card_types = "J23456789TQKA";
 fn getCardIndex(card: u8) usize {
     inline for (card_types, 0..) |card_type, index| {
         if (card == card_type) return index;
@@ -97,7 +103,7 @@ const HandType = enum {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 6440;
+    const expected: i32 = 5905;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
