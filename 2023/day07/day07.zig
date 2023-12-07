@@ -20,13 +20,14 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         });
     }
 
-    std.mem.sort(Hand, hands.items, {}, strongerThan);
+    std.mem.sort(Hand, hands.items, {}, weakerThan);
 
-    for (hands.items) |hand| {
-        std.debug.print("{} {s} {d}\n", .{ hand.type, hand.cards, hand.bid });
+    var total_winnings: i32 = 0;
+    for (hands.items, 1..) |hand, rank| {
+        total_winnings += hand.bid * @as(i32, @intCast(rank));
     }
 
-    return 0;
+    return total_winnings;
 }
 
 fn getType(hand: []const u8) HandType {
@@ -61,11 +62,11 @@ fn greaterThan(context: void, a: i32, b: i32) bool {
     return a > b;
 }
 
-fn strongerThan(context: void, a: Hand, b: Hand) bool {
+fn weakerThan(context: void, a: Hand, b: Hand) bool {
     _ = context;
-    if (a.type != b.type) return @intFromEnum(a.type) > @intFromEnum(b.type);
+    if (a.type != b.type) return @intFromEnum(a.type) < @intFromEnum(b.type);
     for (a.cards, b.cards) |a_card, b_card| {
-        if (a_card != b_card) return getCardIndex(a_card) > getCardIndex(b_card);
+        if (a_card != b_card) return getCardIndex(a_card) < getCardIndex(b_card);
     }
     return false;
 }
