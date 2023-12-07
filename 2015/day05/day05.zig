@@ -43,32 +43,26 @@ fn isNice(text: []const u8) bool {
     return vowel_count >= 3 and double_count >= 1;
 }
 
-test "ugknbfddgicrmopn" {
+test "qjhvhtzxzqqjkmpb" {
     const expected: i32 = 1;
-    const result = try execute("ugknbfddgicrmopn", std.testing.allocator);
+    const result = try execute("qjhvhtzxzqqjkmpb", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
 
-test "aaa" {
+test "xxyxx" {
     const expected: i32 = 1;
-    const result = try execute("aaa", std.testing.allocator);
+    const result = try execute("xxyxx", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
 
-test "jchzalrnumimnmhp" {
+test "uurcxstgmygtbstg" {
     const expected: i32 = 0;
-    const result = try execute("jchzalrnumimnmhp", std.testing.allocator);
+    const result = try execute("uurcxstgmygtbstg", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
 
-test "haegwjzuvuyypxyu" {
+test "ieodomkazucvgmuy" {
     const expected: i32 = 0;
-    const result = try execute("haegwjzuvuyypxyu", std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
-}
-
-test "dvszwmarrgswjxmb" {
-    const expected: i32 = 0;
-    const result = try execute("dvszwmarrgswjxmb", std.testing.allocator);
+    const result = try execute("ieodomkazucvgmuy", std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
