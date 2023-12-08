@@ -24,32 +24,35 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         });
     }
 
-    var current: *Node = undefined;
-    var goal: *Node = undefined;
+    var current = std.ArrayList(*Node).init(allocator);
+    defer current.deinit();
 
     for (nodes.items) |*node| {
-        if (utils.streql(node.from, "AAA")) current = node;
-        if (utils.streql(node.from, "ZZZ")) goal = node;
+        if (node.from[2] == 'A') try current.append(node);
     }
 
     var steps: i32 = 0;
-    while (current != goal) {
+    outer: while (true) {
         for (instructions) |instruction| {
             steps += 1;
 
-            const next = switch (instruction) {
-                'L' => current.left,
-                'R' => current.right,
-                else => unreachable,
-            };
+            var all_are_goals = true;
 
-            current = for (nodes.items) |*node| {
-                if (utils.streql(node.from, next)) break node;
-            } else unreachable;
+            for (current.items) |*node| {
+                const next = switch (instruction) {
+                    'L' => node.*.left,
+                    'R' => node.*.right,
+                    else => unreachable,
+                };
 
-            if (current == goal) {
-                break;
+                node.* = for (nodes.items) |*other| {
+                    if (utils.streql(other.from, next)) break other;
+                } else unreachable;
+
+                if (node.*.from[2] != 'Z') all_are_goals = false;
             }
+
+            if (all_are_goals) break :outer;
         }
     }
 
@@ -62,15 +65,8 @@ const Node = struct {
     right: []const u8,
 };
 
-test "example01" {
-    const text = @embedFile("example01.txt");
-    const expected: i32 = 2;
-    const result = try execute(text, std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
-}
-
-test "example02" {
-    const text = @embedFile("example02.txt");
+test {
+    const text = @embedFile("example.txt");
     const expected: i32 = 6;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
