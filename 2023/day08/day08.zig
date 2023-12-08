@@ -6,8 +6,14 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+    var string_nodes = std.ArrayList(StringNode).init(allocator);
+    defer string_nodes.deinit();
+
     var nodes = std.ArrayList(Node).init(allocator);
     defer nodes.deinit();
+
+    var current = std.ArrayList(*Node).init(allocator);
+    defer current.deinit();
 
     var lines_it = utils.tokenize(text, "\r\n");
     const instructions = lines_it.next().?;
@@ -17,18 +23,25 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         const left = line_it.next().?;
         const right = line_it.next().?;
 
-        try nodes.append(.{
+        try string_nodes.append(.{
             .from = from,
             .left = left,
             .right = right,
         });
+        try nodes.append(.{
+            .left = undefined,
+            .right = undefined,
+            .is_goal = from[2] == 'Z',
+        });
     }
 
-    var current = std.ArrayList(*Node).init(allocator);
-    defer current.deinit();
+    for (string_nodes.items, nodes.items) |string_node, *node| {
+        for (string_nodes.items, 0..) |other, other_i| {
+            if (utils.streql(string_node.left, other.from)) node.left = &nodes.items[other_i];
+            if (utils.streql(string_node.right, other.from)) node.right = &nodes.items[other_i];
+        }
 
-    for (nodes.items) |*node| {
-        if (node.from[2] == 'A') try current.append(node);
+        if (string_node.from[2] == 'A') try current.append(node);
     }
 
     var steps: i32 = 0;
@@ -39,17 +52,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             var all_are_goals = true;
 
             for (current.items) |*node| {
-                const next = switch (instruction) {
+                node.* = switch (instruction) {
                     'L' => node.*.left,
                     'R' => node.*.right,
                     else => unreachable,
                 };
 
-                node.* = for (nodes.items) |*other| {
-                    if (utils.streql(other.from, next)) break other;
-                } else unreachable;
-
-                if (node.*.from[2] != 'Z') all_are_goals = false;
+                if (!node.*.is_goal) all_are_goals = false;
             }
 
             if (all_are_goals) break :outer;
@@ -59,10 +68,16 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     return steps;
 }
 
-const Node = struct {
+const StringNode = struct {
     from: []const u8,
     left: []const u8,
     right: []const u8,
+};
+
+const Node = struct {
+    left: *Node,
+    right: *Node,
+    is_goal: bool,
 };
 
 test {
