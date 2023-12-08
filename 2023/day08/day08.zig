@@ -11,7 +11,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
     var lines_it = utils.tokenize(text, "\r\n");
     const instructions = lines_it.next().?;
-    _ = instructions;
     while (lines_it.next()) |line| {
         var line_it = utils.tokenize(line, " =(,)");
         const from = line_it.next().?;
@@ -25,11 +24,36 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         });
     }
 
-    for (nodes.items) |node| {
-        std.debug.print("{s}: <- {s}, -> {s}\n", .{ node.from, node.left, node.right });
+    var current: *Node = undefined;
+    var goal: *Node = undefined;
+
+    for (nodes.items) |*node| {
+        if (utils.streql(node.from, "AAA")) current = node;
+        if (utils.streql(node.from, "ZZZ")) goal = node;
     }
 
-    return 0;
+    var steps: i32 = 0;
+    while (current != goal) {
+        for (instructions) |instruction| {
+            steps += 1;
+
+            const next = switch (instruction) {
+                'L' => current.left,
+                'R' => current.right,
+                else => unreachable,
+            };
+
+            current = for (nodes.items) |*node| {
+                if (utils.streql(node.from, next)) break node;
+            } else unreachable;
+
+            if (current == goal) {
+                break;
+            }
+        }
+    }
+
+    return steps;
 }
 
 const Node = struct {
