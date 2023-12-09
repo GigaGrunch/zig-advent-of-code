@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("utils");
+const builtin = @import("builtin");
 
 pub fn main() !void {
     try utils.main(&execute);
@@ -44,28 +45,39 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         if (string_node.from[2] == 'A') try current.append(node);
     }
 
-    var steps: i32 = 0;
-    outer: while (true) {
-        for (instructions) |instruction| {
-            steps += 1;
+    var loop_lengths = std.ArrayList(i32).init(allocator);
+    defer loop_lengths.deinit();
 
-            var all_are_goals = true;
+    for (current.items) |*node| {
+        var starts = std.ArrayList(*Node).init(allocator);
+        defer starts.deinit();
 
-            for (current.items) |*node| {
+        while (true) {
+            if (std.mem.indexOfScalar(*Node, starts.items, node.*)) |start_index| {
+                const end_index = starts.items.len;
+                const start_step = start_index * instructions.len;
+                const end_step = end_index * instructions.len;
+                const steps_count = end_step - start_step;
+                try loop_lengths.append(@intCast(steps_count));
+                if (!builtin.is_test) {
+                }
+                    std.debug.print("found the loop: {d} -> {d} = {d}\n", .{start_step, end_step, steps_count});
+                break;
+            }
+
+            try starts.append(node.*);
+
+            for (instructions) |instruction| {
                 node.* = switch (instruction) {
                     'L' => node.*.left,
                     'R' => node.*.right,
                     else => unreachable,
                 };
-
-                if (!node.*.is_goal) all_are_goals = false;
             }
-
-            if (all_are_goals) break :outer;
         }
     }
 
-    return steps;
+    return 0;
 }
 
 const StringNode = struct {
