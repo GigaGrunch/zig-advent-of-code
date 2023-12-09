@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn main(execute: *const fn ([]const u8, std.mem.Allocator) anyerror!i32) !void {
+pub fn main(execute: anytype) !void {
     const expected_zig_version = .{ .major = 0, .minor = 11, .patch = 0 };
     const compatible = comptime @import("builtin").zig_version.order(expected_zig_version) == .eq;
     if (!compatible) @compileError("Zig version 0.11.0 is required.");
