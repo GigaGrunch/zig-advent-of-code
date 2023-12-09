@@ -6,7 +6,7 @@ pub fn main() !void {
     try utils.main(&execute);
 }
 
-fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     var string_nodes = std.ArrayList(StringNode).init(allocator);
     defer string_nodes.deinit();
 
@@ -45,7 +45,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         if (string_node.from[2] == 'A') try current.append(node);
     }
 
-    var loop_lengths = std.ArrayList(i32).init(allocator);
+    var loop_lengths = std.ArrayList(usize).init(allocator);
     defer loop_lengths.deinit();
 
     for (current.items) |*node| {
@@ -59,9 +59,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
                 const end_step = end_index * instructions.len;
                 const steps_count = end_step - start_step;
                 try loop_lengths.append(@intCast(steps_count));
-                if (!builtin.is_test) {
-                }
-                    std.debug.print("found the loop: {d} -> {d} = {d}\n", .{start_step, end_step, steps_count});
                 break;
             }
 
@@ -77,7 +74,27 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    return 0;
+    var current_loops = std.ArrayList(usize).init(allocator);
+    defer current_loops.deinit();
+
+    try current_loops.appendSlice(loop_lengths.items);
+
+    var result: usize = 0;
+    var still_updating = true;
+    while (still_updating) {
+        still_updating = false;
+        for (current_loops.items, 0..) |*loop, i| {
+            while (loop.* < result) {
+                loop.* += loop_lengths.items[i];
+            }
+            if (loop.* > result) {
+                still_updating = true;
+                result = loop.*;
+            }
+        }
+    }
+
+    return result;
 }
 
 const StringNode = struct {
@@ -94,7 +111,7 @@ const Node = struct {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 6;
+    const expected: usize = 6;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
