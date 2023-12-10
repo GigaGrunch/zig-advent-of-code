@@ -24,19 +24,33 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         .height = height,
     };
 
+    var start: Coord = undefined;
     for (0..height) |y| {
-        const start = y * width;
-        const end = start + width;
-        std.debug.print("{s}\n", .{map.string[start..end]});
+        for (0..width) |x| {
+            if (map.at(x, y) == 'S') {
+                start = .{ .x = x, .y = y };
+            }
+        }
     }
+
+    std.debug.print("{}\n", .{start});
 
     return 0;
 }
 
+const Coord = struct {
+    x: usize,
+    y: usize,
+};
+
 const Map = struct {
     string: []const u8,
     width: usize,
-    height: usize,  
+    height: usize,
+
+    fn at(self: Map, x: usize, y: usize) u8 {
+        return self.string[y * self.width + x];
+    }
 };
 
 test "example01" {
