@@ -6,13 +6,12 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+    var sum: i32 = 0;
+
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
         var sequence_stack = std.ArrayList(std.ArrayList(i32)).init(allocator);
-        defer {
-            for (sequence_stack.items) |sequence| sequence.deinit();
-            sequence_stack.deinit();
-        }
+        defer sequence_stack.deinit();
 
         var original_sequence = try appendGet(std.ArrayList(i32), &sequence_stack);
         original_sequence.* = std.ArrayList(i32).init(allocator);
@@ -42,15 +41,17 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             if (all_equal) break;
         }
 
-        for (sequence_stack.items) |sequence| {
-            for (sequence.items) |number| {
-                std.debug.print("{d} ", .{number});
-            }
-            std.debug.print("\n", .{});
+        var addend: i32 = 0;
+        while (sequence_stack.items.len > 0) {
+            var sequence = sequence_stack.pop();
+            defer sequence.deinit();
+            addend = sequence.pop() + addend;
         }
+
+        sum += addend;
     }
 
-    return 0;
+    return sum;
 }
 
 fn appendGet(comptime T: type, list: *std.ArrayList(T)) !*T {
