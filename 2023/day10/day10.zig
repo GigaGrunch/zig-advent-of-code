@@ -110,46 +110,198 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
     std.debug.assert(inferred_start != 0);
 
-    string.items[start_index] = inferred_start;
+    map.string[start_index] = inferred_start;
 
     var visited = std.ArrayList(Coord).init(allocator);
     defer visited.deinit();
 
+    var sides = std.ArrayList(SideInfo).init(allocator);
+    defer sides.deinit();
+
     try visited.append(start);
+    try sides.append(.{});
 
     while (current_1 != null or current_2 != null) {
         if (current_1) |c_1| {
             try visited.append(c_1);
+            try sides.append(.{});
             current_1 = null;
             const connections = map.findConnections(c_1);
-            if (!utils.containsItem(visited.items, connections._1)) {
-                current_1 = connections._1;
-            }
-            else if (!utils.containsItem(visited.items, connections._2)) {
-                current_1 = connections._2;
+            for (connections) |connection| {
+                if (!utils.containsItem(visited.items, connection)) {
+                    current_1 = connection;
+                    break;
+                }
             }
         }
         if (current_2) |c_2| {
             try visited.append(c_2);
+            try sides.append(.{});
             current_2 = null;
             const connections = map.findConnections(c_2);
-            if (!utils.containsItem(visited.items, connections._1)) {
-                current_2 = connections._1;
-            }
-            else if (!utils.containsItem(visited.items, connections._2)) {
-                current_2 = connections._2;
+            for (connections) |connection| {
+                if (!utils.containsItem(visited.items, connection)) {
+                    current_2 = connection;
+                    break;
+                }
             }
         }
     }
 
-    for (0..height) |y| {
+    var current: Coord = undefined;
+    outer: for (0..height) |y| {
         for (0..width) |x| {
-            std.debug.print("{c}", .{map.at(.{.x = x, .y = y})});
+            const coord = Coord { .x = x, .y = y };
+            if (utils.indexOf(visited.items, coord)) |index| {
+                current = coord;
+                const char = map.at(coord);
+                switch (char) {
+                    'F' => {
+                        sides.items[index].up_is_inner = false;
+                        sides.items[index].left_is_inner = false;
+                    },
+                    else => unreachable,
+                }
+                break :outer;
+            }
         }
-        std.debug.print("\n", .{});
     }
 
-    return 0;
+    while (true) {
+        const current_sides = sides.items[utils.indexOf(visited.items, current).?];
+
+        var found_other = false;
+        const others = map.findConnections(current);
+        for (others) |other| {
+            const other_char = map.at(other);
+            var other_sides = &sides.items[utils.indexOf(visited.items, other).?];
+            if (other_sides.up_is_inner == null and
+                other_sides.down_is_inner == null and
+                other_sides.left_is_inner == null and
+                other_sides.right_is_inner == null) {
+                switch (other_char) {
+                    '|' => {
+                        if (current_sides.left_is_inner) |left_is_inner| {
+                            other_sides.left_is_inner = left_is_inner;
+                            other_sides.right_is_inner = !left_is_inner;
+                        } else if (current_sides.right_is_inner) |right_is_inner| {
+                            other_sides.right_is_inner = right_is_inner;
+                            other_sides.left_is_inner = !right_is_inner;
+                        }
+                    },
+                    '-' => {
+                        if (current_sides.up_is_inner) |up_is_inner| {
+                            other_sides.up_is_inner = up_is_inner;
+                            other_sides.down_is_inner = !up_is_inner;
+                        } else if (current_sides.down_is_inner) |down_is_inner| {
+                            other_sides.down_is_inner = down_is_inner;
+                            other_sides.up_is_inner = !down_is_inner;
+                        }
+                    },
+                    'F' => {
+                        if (current.x == other.x + 1) {
+                            if (current_sides.up_is_inner) |up_is_inner| {
+                                other_sides.up_is_inner = up_is_inner;
+                                other_sides.left_is_inner = up_is_inner;
+                            } else if (current_sides.down_is_inner) |down_is_inner| {
+                                other_sides.up_is_inner = !down_is_inner;
+                                other_sides.left_is_inner = !down_is_inner;
+                            }
+                        } else {
+                            if (current_sides.left_is_inner) |left_is_inner| {
+                                other_sides.left_is_inner = left_is_inner;
+                                other_sides.up_is_inner = left_is_inner;
+                            } else if (current_sides.right_is_inner) |right_is_inner| {
+                                other_sides.left_is_inner = !right_is_inner;
+                                other_sides.up_is_inner = !right_is_inner;
+                            }
+                        }
+                    },
+                    'L' => {
+                        if (current.x == other.x + 1) {
+                            if (current_sides.up_is_inner) |up_is_inner| {
+                                other_sides.down_is_inner = !up_is_inner;
+                                other_sides.left_is_inner = !up_is_inner;
+                            } else if (current_sides.down_is_inner) |down_is_inner| {
+                                other_sides.down_is_inner = down_is_inner;
+                                other_sides.left_is_inner = down_is_inner;
+                            }
+                        } else {
+                            if (current_sides.left_is_inner) |left_is_inner| {
+                                other_sides.left_is_inner = left_is_inner;
+                                other_sides.down_is_inner = left_is_inner;
+                            } else if (current_sides.right_is_inner) |right_is_inner| {
+                                other_sides.left_is_inner = !right_is_inner;
+                                other_sides.down_is_inner = !right_is_inner;
+                            }
+                        }
+                    },
+                    'J' => {
+                        if (current.x + 1 == other.x) {
+                            if (current_sides.up_is_inner) |up_is_inner| {
+                                other_sides.down_is_inner = !up_is_inner;
+                                other_sides.right_is_inner = !up_is_inner;
+                            } else if (current_sides.down_is_inner) |down_is_inner| {
+                                other_sides.down_is_inner = down_is_inner;
+                                other_sides.right_is_inner = down_is_inner;
+                            }
+                        } else {
+                            if (current_sides.left_is_inner) |left_is_inner| {
+                                other_sides.right_is_inner = !left_is_inner;
+                                other_sides.down_is_inner = !left_is_inner;
+                            } else if (current_sides.right_is_inner) |right_is_inner| {
+                                other_sides.right_is_inner = right_is_inner;
+                                other_sides.down_is_inner = right_is_inner;
+                            }
+                        }
+                    },
+                    '7' => {
+                        if (current.x + 1 == other.x) {
+                            if (current_sides.up_is_inner) |up_is_inner| {
+                                other_sides.up_is_inner = up_is_inner;
+                                other_sides.right_is_inner = up_is_inner;
+                            } else if (current_sides.down_is_inner) |down_is_inner| {
+                                other_sides.up_is_inner = !down_is_inner;
+                                other_sides.right_is_inner = !down_is_inner;
+                            }
+                        } else {
+                            if (current_sides.left_is_inner) |left_is_inner| {
+                                other_sides.right_is_inner = !left_is_inner;
+                                other_sides.up_is_inner = !left_is_inner;
+                            } else if (current_sides.right_is_inner) |right_is_inner| {
+                                other_sides.right_is_inner = right_is_inner;
+                                other_sides.up_is_inner = right_is_inner;
+                            }
+                        }
+                    },
+                    else => unreachable,
+                }
+
+                found_other = true;
+                current = other;
+                break;
+            }
+        }
+
+        if (!found_other) break;
+    }
+
+    var inner_count: i32 = 0;
+    for (0..height) |y| {
+        var is_inner = false;
+        for (0..width) |x| {
+            const coord = Coord { .x = x, .y = y };
+            if (utils.indexOf(visited.items, coord)) |index| {
+                if (sides.items[index].right_is_inner) |right_is_inner| {
+                    is_inner = right_is_inner;
+                }
+            } else if (is_inner) {
+                inner_count += 1;
+            }
+        }
+    }
+
+    return inner_count;
 }
 
 const Coord = struct {
@@ -157,8 +309,15 @@ const Coord = struct {
     y: usize,
 };
 
+const SideInfo = struct {
+    up_is_inner: ?bool = null,
+    down_is_inner: ?bool = null,
+    left_is_inner: ?bool = null,
+    right_is_inner: ?bool = null,
+};
+
 const Map = struct {
-    string: []const u8,
+    string: []u8,
     width: usize,
     height: usize,
 
@@ -166,14 +325,14 @@ const Map = struct {
         return self.string[coord.y * self.width + coord.x];
     }
 
-    fn findConnections(self: Map, coord: Coord) struct { _1: Coord, _2: Coord, } {
+    fn findConnections(self: Map, coord: Coord) [2]Coord {
         return switch (self.at(coord)) {
-            '|' => .{ ._1 = .{ .x = coord.x, .y = coord.y - 1 }, ._2 = .{ .x = coord.x, .y = coord.y + 1 } },
-            '-' => .{ ._1 = .{ .x = coord.x - 1, .y = coord.y }, ._2 = .{ .x = coord.x + 1, .y = coord.y } },
-            'F' => .{ ._1 = .{ .x = coord.x, .y = coord.y + 1 }, ._2 = .{ .x = coord.x + 1, .y = coord.y } },
-            'J' => .{ ._1 = .{ .x = coord.x - 1, .y = coord.y }, ._2 = .{ .x = coord.x, .y = coord.y - 1 } },
-            '7' => .{ ._1 = .{ .x = coord.x - 1, .y = coord.y }, ._2 = .{ .x = coord.x, .y = coord.y + 1 } },
-            'L' => .{ ._1 = .{ .x = coord.x, .y = coord.y - 1 }, ._2 = .{ .x = coord.x + 1, .y = coord.y } },
+            '|' => .{ .{ .x = coord.x, .y = coord.y - 1 }, .{ .x = coord.x, .y = coord.y + 1 } },
+            '-' => .{ .{ .x = coord.x - 1, .y = coord.y }, .{ .x = coord.x + 1, .y = coord.y } },
+            'F' => .{ .{ .x = coord.x, .y = coord.y + 1 }, .{ .x = coord.x + 1, .y = coord.y } },
+            'J' => .{ .{ .x = coord.x - 1, .y = coord.y }, .{ .x = coord.x, .y = coord.y - 1 } },
+            '7' => .{ .{ .x = coord.x - 1, .y = coord.y }, .{ .x = coord.x, .y = coord.y + 1 } },
+            'L' => .{ .{ .x = coord.x, .y = coord.y - 1 }, .{ .x = coord.x + 1, .y = coord.y } },
             else => unreachable,
         };
     }

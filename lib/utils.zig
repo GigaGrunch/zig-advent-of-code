@@ -52,3 +52,8 @@ pub fn endsWith(haystack: []const u8, needle: []const u8) bool {
 pub fn streql(a: []const u8, b: []const u8) bool {
     return std.mem.eql(u8, a, b);
 }
+
+pub fn indexOf(haystack: anytype, needle: anytype) ?usize {
+    for (haystack, 0..) |element, i| if (std.meta.eql(element, needle)) return i;
+    return null;
+}
