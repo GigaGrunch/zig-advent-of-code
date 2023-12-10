@@ -41,14 +41,14 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             if (all_equal) break;
         }
 
-        var addend: i32 = 0;
+        var subtrahend: i32 = 0;
         while (sequence_stack.items.len > 0) {
             var sequence = sequence_stack.pop();
             defer sequence.deinit();
-            addend = sequence.pop() + addend;
+            subtrahend = sequence.items[0] - subtrahend;
         }
 
-        sum += addend;
+        sum += subtrahend;
     }
 
     return sum;
@@ -62,7 +62,7 @@ fn appendGet(comptime T: type, list: *std.ArrayList(T)) !*T {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 114;
+    const expected: i32 = 2;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
