@@ -163,7 +163,21 @@ test "example01" {
 
 test "example02" {
     const text = @embedFile("example02.txt");
+    const expected: i32 = 4;
+    const result = try execute(text, std.testing.allocator);
+    try std.testing.expectEqual(expected, result);
+}
+
+test "example03" {
+    const text = @embedFile("example03.txt");
     const expected: i32 = 8;
+    const result = try execute(text, std.testing.allocator);
+    try std.testing.expectEqual(expected, result);
+}
+
+test "example04" {
+    const text = @embedFile("example04.txt");
+    const expected: i32 = 10;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
