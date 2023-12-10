@@ -24,6 +24,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         .height = height,
     };
 
+    var start_index: usize = undefined;
     var start: Coord = undefined;
     var current_1: ?Coord = null;
     var current_2: ?Coord = null;
@@ -32,6 +33,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         for (0..width) |x| {
             start = .{ .x = x, .y = y };
             if (map.at(start) == 'S') {
+                start_index = y * width + x;
+
                 if (x > 0) {
                     const left = Coord { .x = x - 1, .y = y };
                     switch (map.at(left)) {
@@ -107,6 +110,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
     std.debug.assert(inferred_start != 0);
 
+    string.items[start_index] = inferred_start;
+
     var visited = std.ArrayList(Coord).init(allocator);
     defer visited.deinit();
 
@@ -135,6 +140,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
                 current_2 = connections._2;
             }
         }
+    }
+
+    for (0..height) |y| {
+        for (0..width) |x| {
+            std.debug.print("{c}", .{map.at(.{.x = x, .y = y})});
+        }
+        std.debug.print("\n", .{});
     }
 
     return 0;
