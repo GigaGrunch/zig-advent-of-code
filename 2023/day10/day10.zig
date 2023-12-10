@@ -92,6 +92,21 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
     std.debug.assert(current_1 != null and current_2 != null);
 
+    const has_up = current_1.?.y + 1 == start.y or current_2.?.y + 1 == start.y;
+    const has_down = current_1.?.y == start.y + 1 or current_2.?.y == start.y + 1;
+    const has_left = current_1.?.x + 1 == start.x or current_2.?.x + 1 == start.x;
+    const has_right = current_1.?.x == start.x + 1 or current_2.?.x == start.x + 1;
+
+    var inferred_start: u8 = 0;
+    if (has_up and has_down) inferred_start = '|';
+    if (has_up and has_left) inferred_start = 'J';
+    if (has_up and has_right) inferred_start = 'L';
+    if (has_down and has_left) inferred_start = '7';
+    if (has_down and has_right) inferred_start = 'F';
+    if (has_left and has_right) inferred_start = '-';
+
+    std.debug.assert(inferred_start != 0);
+
     var visited = std.ArrayList(Coord).init(allocator);
     defer visited.deinit();
 
@@ -122,9 +137,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    const loop_length: i32 = @intCast(visited.items.len);
-    const farthest_distance = @divTrunc(loop_length, 2);
-    return farthest_distance;
+    return 0;
 }
 
 const Coord = struct {
