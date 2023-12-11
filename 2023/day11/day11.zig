@@ -42,14 +42,26 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    std.debug.print("width: {d}, height: {d}\n", .{ width, height });
-    std.debug.print("galaxies: ", .{});
-    for (galaxies.items) |pos| std.debug.print("({d},{d}) ", .{ pos.x, pos.y });
-    std.debug.print("\n", .{});
-    std.debug.print("empty rows: {any}\n", .{empty_rows.items});
-    std.debug.print("empty columns: {any}\n", .{empty_columns.items});
+    var sum: i32 = 0;
+    for (galaxies.items, 0..) |pos_a, index_a| {
+        for (galaxies.items[index_a + 1 ..]) |pos_b| {
+            var path: i32 = 0;
 
-    return 0;
+            var x_pos = @min(pos_a.x, pos_b.x);
+            while (x_pos != @max(pos_a.x, pos_b.x)) : (x_pos += 1) {
+                path += if (utils.containsItem(empty_columns.items, x_pos)) 2 else 1;
+            }
+
+            var y_pos = @min(pos_a.y, pos_b.y);
+            while (y_pos != @max(pos_a.y, pos_b.y)) : (y_pos += 1) {
+                path += if (utils.containsItem(empty_rows.items, y_pos)) 2 else 1;
+            }
+
+            sum += path;
+        }
+    }
+
+    return sum;
 }
 
 const Pos = struct {
