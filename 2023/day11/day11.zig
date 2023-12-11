@@ -1,11 +1,13 @@
 const std = @import("std");
 const utils = @import("utils");
 
+var empty_space_size: u64 = 1_000_000;
+
 pub fn main() !void {
     try utils.main(execute);
 }
 
-fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+fn execute(text: []const u8, allocator: std.mem.Allocator) !u64 {
     var galaxies = std.ArrayList(Pos).init(allocator);
     var empty_rows = std.ArrayList(i32).init(allocator);
     var empty_columns = std.ArrayList(i32).init(allocator);
@@ -42,19 +44,19 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    var sum: i32 = 0;
+    var sum: u64 = 0;
     for (galaxies.items, 0..) |pos_a, index_a| {
         for (galaxies.items[index_a + 1 ..]) |pos_b| {
-            var path: i32 = 0;
+            var path: u64 = 0;
 
             var x_pos = @min(pos_a.x, pos_b.x);
             while (x_pos != @max(pos_a.x, pos_b.x)) : (x_pos += 1) {
-                path += if (utils.containsItem(empty_columns.items, x_pos)) 2 else 1;
+                path += if (utils.containsItem(empty_columns.items, x_pos)) empty_space_size else 1;
             }
 
             var y_pos = @min(pos_a.y, pos_b.y);
             while (y_pos != @max(pos_a.y, pos_b.y)) : (y_pos += 1) {
-                path += if (utils.containsItem(empty_rows.items, y_pos)) 2 else 1;
+                path += if (utils.containsItem(empty_rows.items, y_pos)) empty_space_size else 1;
             }
 
             sum += path;
@@ -69,9 +71,18 @@ const Pos = struct {
     y: i32,
 };
 
-test {
+test "10x" {
+    empty_space_size = 10;
     const text = @embedFile("example.txt");
-    const expected: i32 = 374;
+    const expected: u64 = 1030;
+    const result = try execute(text, std.testing.allocator);
+    try std.testing.expectEqual(expected, result);
+}
+
+test "100x" {
+    empty_space_size = 100;
+    const text = @embedFile("example.txt");
+    const expected: u64 = 8410;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
