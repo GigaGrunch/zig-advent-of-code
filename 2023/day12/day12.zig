@@ -13,17 +13,28 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         var line_it = utils.tokenize(line, " ");
         const springs = line_it.next().?;
 
-        var groups_list = std.ArrayList(i32).init(allocator);
-        defer groups_list.deinit();
+        var groups = std.ArrayList(i32).init(allocator);
+        defer groups.deinit();
 
         var groups_it = utils.tokenize(line_it.next().?, ",");
         while (groups_it.next()) |group_string| {
             const group = try utils.parseInt(i32, group_string);
-            try groups_list.append(group);
+            try groups.append(group);
         }
 
-        const groups = groups_list.items;
-        const matches = findMatches(springs, groups);
+        var unfolded_springs = std.ArrayList(u8).init(allocator);
+        defer unfolded_springs.deinit();
+
+        var unfolded_groups = std.ArrayList(i32).init(allocator);
+        defer unfolded_groups.deinit();
+
+        for (0..5) |i| {
+            if (i > 0) try unfolded_springs.append('?');
+            try unfolded_springs.appendSlice(springs);
+            try unfolded_groups.appendSlice(groups.items);
+        }
+
+        const matches = findMatches(unfolded_springs.items, unfolded_groups.items);
         sum += matches;
     }
 
@@ -76,7 +87,7 @@ fn findMatches(springs: []const u8, groups: []const i32) i32 {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 21;
+    const expected: i32 = 525152;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
