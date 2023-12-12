@@ -9,7 +9,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
         var line_it = utils.tokenize(line, " ");
-        const spring_list = line_it.next().?;
+        const springs = line_it.next().?;
 
         var groups_list = std.ArrayList(i32).init(allocator);
         defer groups_list.deinit();
@@ -22,10 +22,33 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
         const groups = groups_list.items;
 
-        std.debug.print("{s} {any}\n", .{ spring_list, groups });
+        std.debug.print("{s} {any}\n", .{ springs, groups });
+
+        _ = findMatches(springs, groups);
     }
 
     return 0;
+}
+
+fn findMatches(springs: []const u8, groups: []const i32) i32 {
+    var matches: i32 = 0;
+
+    const group = groups[0];
+    const group_length: usize = @intCast(group);
+    outer: for (0..springs.len - group_length) |i| {
+        const test_group = springs[i .. i + group_length];
+        for (test_group) |char| {
+            if (char == '.') continue :outer;
+        }
+
+        if (i + group_length < springs.len) {
+            if (springs[i + group_length] == '#') continue :outer;
+        }
+
+        std.debug.print("found {d} group at {d}\n", .{ group, i });
+    }
+
+    return matches;
 }
 
 test {
