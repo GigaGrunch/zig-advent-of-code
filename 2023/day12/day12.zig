@@ -5,8 +5,30 @@ pub fn main() !void {
     try utils.main(&execute);
 }
 
-fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var sum: i32 = 0;
+var known_springs: std.ArrayList([]const u8) = undefined;
+var known_groups: std.ArrayList([]const i32) = undefined;
+var known_matches: std.ArrayList(u64) = undefined;
+
+fn execute(text: []const u8, allocator: std.mem.Allocator) !u64 {
+    var sum: u64 = 0;
+
+    var springs_list = std.ArrayList(std.ArrayList(u8)).init(allocator);
+    defer {
+        for (springs_list.items) |list| list.deinit();
+        springs_list.deinit();
+    }
+    var groups_list = std.ArrayList(std.ArrayList(i32)).init(allocator);
+    defer {
+        for (groups_list.items) |list| list.deinit();
+        groups_list.deinit();
+    }
+
+    known_springs = @TypeOf(known_springs).init(allocator);
+    defer known_springs.deinit();
+    known_groups = @TypeOf(known_groups).init(allocator);
+    defer known_groups.deinit();
+    known_matches = @TypeOf(known_matches).init(allocator);
+    defer known_matches.deinit();
 
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
@@ -22,11 +44,11 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             try groups.append(group);
         }
 
-        var unfolded_springs = std.ArrayList(u8).init(allocator);
-        defer unfolded_springs.deinit();
+        try springs_list.append(std.ArrayList(u8).init(allocator));
+        var unfolded_springs = &springs_list.items[springs_list.items.len - 1];
 
-        var unfolded_groups = std.ArrayList(i32).init(allocator);
-        defer unfolded_groups.deinit();
+        try groups_list.append(std.ArrayList(i32).init(allocator));
+        var unfolded_groups = &groups_list.items[groups_list.items.len - 1];
 
         for (0..5) |i| {
             if (i > 0) try unfolded_springs.append('?');
@@ -34,15 +56,38 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             try unfolded_groups.appendSlice(groups.items);
         }
 
-        const matches = findMatches(unfolded_springs.items, unfolded_groups.items);
+        const matches = try findMatches(unfolded_springs.items, unfolded_groups.items);
         sum += matches;
     }
 
     return sum;
 }
 
-fn findMatches(springs: []const u8, groups: []const i32) i32 {
-    var matches: i32 = 0;
+fn findCachedResult(springs: []const u8, groups: []const i32) ?u64 {
+    for (known_springs.items, 0..) |known_s, index| {
+        if (std.meta.eql(springs, known_s)) {
+            const known_g = known_groups.items[index];
+            if (std.meta.eql(groups, known_g)) {
+                const known_m = known_matches.items[index];
+                return known_m;
+            }
+        }
+    }
+    return null;
+}
+
+fn storeResult(springs: []const u8, groups: []const i32, matches: u64) !void {
+    try known_springs.append(springs);
+    try known_groups.append(groups);
+    try known_matches.append(matches);
+}
+
+fn findMatches(springs: []const u8, groups: []const i32) !u64 {
+    if (findCachedResult(springs, groups)) |cached| {
+        return cached;
+    }
+
+    var matches: u64 = 0;
     const current_group: usize = @intCast(groups[0]);
     const remaining_groups = groups[1..];
     var required_length = current_group;
@@ -79,15 +124,17 @@ fn findMatches(springs: []const u8, groups: []const i32) i32 {
             continue :outer;
         }
 
-        matches += findMatches(springs[start_index + current_group + 1 ..], remaining_groups);
+        matches += try findMatches(springs[start_index + current_group + 1 ..], remaining_groups);
     }
+
+    try storeResult(springs, groups, matches);
 
     return matches;
 }
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 525152;
+    const expected: u64 = 525152;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
