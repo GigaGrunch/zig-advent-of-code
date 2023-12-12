@@ -23,7 +23,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
 
         const groups = groups_list.items;
-        sum += findMatches(springs, groups);
+        const matches = findMatches(springs, groups);
+        sum += matches;
     }
 
     return sum;
@@ -39,18 +40,27 @@ fn findMatches(springs: []const u8, groups: []const i32) i32 {
     var start_index: usize = 0;
     outer: while (springs.len - start_index >= required_length) : (start_index += 1) {
         const test_group = springs[start_index .. start_index + current_group];
+
         for (test_group) |char| {
             if (char == '.') {
                 continue :outer;
             }
         }
 
-        if (remaining_groups.len == 0) {
-            matches += 1;
-            continue :outer;
+        for (springs[0..start_index]) |char| {
+            if (char == '#') {
+                continue :outer;
+            }
         }
 
-        if (start_index > 0 and springs[start_index - 1] == '#') {
+        if (remaining_groups.len == 0) {
+            for (springs[start_index + current_group ..]) |char| {
+                if (char == '#') {
+                    continue :outer;
+                }
+            }
+
+            matches += 1;
             continue :outer;
         }
 
