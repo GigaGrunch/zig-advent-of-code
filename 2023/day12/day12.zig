@@ -6,6 +6,8 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+    var sum: i32 = 0;
+
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
         var line_it = utils.tokenize(line, " ");
@@ -21,31 +23,42 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
 
         const groups = groups_list.items;
-
-        std.debug.print("{s} {any}\n", .{ springs, groups });
-
-        _ = findMatches(springs, groups);
+        sum += findMatches(springs, groups);
     }
 
-    return 0;
+    return sum;
 }
 
 fn findMatches(springs: []const u8, groups: []const i32) i32 {
     var matches: i32 = 0;
+    const current_group: usize = @intCast(groups[0]);
+    const remaining_groups = groups[1..];
+    var required_length = current_group;
+    for (remaining_groups) |group| required_length += @intCast(1 + group);
 
-    const group = groups[0];
-    const group_length: usize = @intCast(group);
-    outer: for (0..springs.len - group_length) |i| {
-        const test_group = springs[i .. i + group_length];
+    var start_index: usize = 0;
+    outer: while (springs.len - start_index >= required_length) : (start_index += 1) {
+        const test_group = springs[start_index .. start_index + current_group];
         for (test_group) |char| {
-            if (char == '.') continue :outer;
+            if (char == '.') {
+                continue :outer;
+            }
         }
 
-        if (i + group_length < springs.len) {
-            if (springs[i + group_length] == '#') continue :outer;
+        if (remaining_groups.len == 0) {
+            matches += 1;
+            continue :outer;
         }
 
-        std.debug.print("found {d} group at {d}\n", .{ group, i });
+        if (start_index > 0 and springs[start_index - 1] == '#') {
+            continue :outer;
+        }
+
+        if (springs[start_index + current_group] == '#') {
+            continue :outer;
+        }
+
+        matches += findMatches(springs[start_index + current_group + 1 ..], remaining_groups);
     }
 
     return matches;
