@@ -25,8 +25,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             try lines.append(line);
         }
 
-        const original_vertical_reflection_line = try findVerticalReflectionLine(lines.items, allocator);
-        const original_horizontal_reflection_line = try findHorizontalReflectionLine(lines.items, allocator);
+        const original_vertical_line = try findVerticalReflectionLine(lines.items, null, allocator);
+        const original_horizontal_line = try findHorizontalReflectionLine(lines.items, null, allocator);
 
         const sum_before = sum;
 
@@ -36,18 +36,14 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
                 flipSmudge(smudge);
                 defer flipSmudge(smudge);
 
-                if (try findVerticalReflectionLine(lines.items, allocator)) |vertical_line| {
-                    if (vertical_line != original_vertical_reflection_line) {
-                        sum += @intCast(vertical_line);
-                        break :outer;
-                    }
+                if (try findVerticalReflectionLine(lines.items, original_vertical_line, allocator)) |vertical_line| {
+                    sum += @intCast(vertical_line);
+                    break :outer;
                 }
 
-                if (try findHorizontalReflectionLine(lines.items, allocator)) |horizontal_line| {
-                    if (horizontal_line != original_horizontal_reflection_line) {
-                        sum += @intCast(100 * horizontal_line);
-                        break :outer;
-                    }
+                if (try findHorizontalReflectionLine(lines.items, original_horizontal_line, allocator)) |horizontal_line| {
+                    sum += @intCast(100 * horizontal_line);
+                    break :outer;
                 }
             }
         }
@@ -55,7 +51,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         if (sum_before == sum) {
             std.debug.print("failed to solve pattern:\n", .{});
             for (lines.items) |line| std.debug.print("{s}\n", .{line});
-            std.debug.print("original vertical: {?d}, original horizontal: {?d}\n", .{ original_vertical_reflection_line, original_horizontal_reflection_line });
+            std.debug.print("original vertical: {?d}, original horizontal: {?d}\n", .{ original_vertical_line, original_horizontal_line });
             unreachable;
         }
     }
@@ -63,31 +59,35 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     return sum;
 }
 
-fn findVerticalReflectionLine(lines: []const []const u8, allocator: std.mem.Allocator) !?usize {
-    var vertical_line_candidates = std.ArrayList(bool).init(allocator);
-    defer vertical_line_candidates.deinit();
-    try vertical_line_candidates.append(false);
+fn findVerticalReflectionLine(lines: []const []const u8, except: ?usize, allocator: std.mem.Allocator) !?usize {
+    var candidates = std.ArrayList(bool).init(allocator);
+    defer candidates.deinit();
+    try candidates.append(false);
 
     for (lines) |line| {
-        try updateReflectionCandidates(u8, line, &vertical_line_candidates);
+        try updateReflectionCandidates(u8, line, &candidates);
     }
 
-    if (std.mem.indexOfScalar(bool, vertical_line_candidates.items, true)) |index| {
-        return index;
+    for (candidates.items, 0..) |candidate, index| {
+        if (candidate == true and index != except) {
+            return index;
+        }
     }
 
     return null;
 }
 
-fn findHorizontalReflectionLine(lines: []const []const u8, allocator: std.mem.Allocator) !?usize {
-    var horizontal_line_candidates = std.ArrayList(bool).init(allocator);
-    defer horizontal_line_candidates.deinit();
-    try horizontal_line_candidates.append(false);
+fn findHorizontalReflectionLine(lines: []const []const u8, except: ?usize, allocator: std.mem.Allocator) !?usize {
+    var candidates = std.ArrayList(bool).init(allocator);
+    defer candidates.deinit();
+    try candidates.append(false);
 
-    try updateReflectionCandidates([]const u8, lines, &horizontal_line_candidates);
+    try updateReflectionCandidates([]const u8, lines, &candidates);
 
-    if (std.mem.indexOfScalar(bool, horizontal_line_candidates.items, true)) |index| {
-        return index;
+    for (candidates.items, 0..) |candidate, index| {
+        if (candidate == true and index != except) {
+            return index;
+        }
     }
 
     return null;
