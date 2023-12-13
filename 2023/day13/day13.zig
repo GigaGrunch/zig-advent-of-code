@@ -28,6 +28,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         const original_vertical_reflection_line = try findVerticalReflectionLine(lines.items, allocator);
         const original_horizontal_reflection_line = try findHorizontalReflectionLine(lines.items, allocator);
 
+        const sum_before = sum;
+
         outer: for (0..lines.items.len) |smudge_y| {
             for (0..lines.items[0].len) |smudge_x| {
                 var smudge = &lines.items[smudge_y][smudge_x];
@@ -48,6 +50,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
                     }
                 }
             }
+        }
+
+        if (sum_before == sum) {
+            std.debug.print("failed to solve pattern:\n", .{});
+            for (lines.items) |line| std.debug.print("{s}\n", .{line});
+            std.debug.print("original vertical: {?d}, original horizontal: {?d}\n", .{ original_vertical_reflection_line, original_horizontal_reflection_line });
+            unreachable;
         }
     }
 
