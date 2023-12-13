@@ -8,47 +8,72 @@ pub fn main() !void {
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     const empty_line = if (utils.containsString(text, "\r\n")) "\r\n\r\n" else "\n\n";
 
+    var sum: i32 = 0;
+
     var patterns_it = std.mem.split(u8, text, empty_line);
     while (patterns_it.next()) |pattern| {
+        var lines = std.ArrayList([]const u8).init(allocator);
+        defer lines.deinit();
+
+        var lines_it = utils.tokenize(pattern, "\r\n");
+        while (lines_it.next()) |line| {
+            try lines.append(line);
+        }
+
         var horizontal_mirror_candidates = std.ArrayList(bool).init(allocator);
         defer horizontal_mirror_candidates.deinit();
         try horizontal_mirror_candidates.append(false);
 
-        var lines_it = utils.tokenize(pattern, "\r\n");
-        while (lines_it.next()) |line| {
-            for (1..line.len) |i| {
-                if (i == horizontal_mirror_candidates.items.len) {
-                    try horizontal_mirror_candidates.append(true);
-                } else if (horizontal_mirror_candidates.items[i] == false) {
-                    continue;
-                }
-
-                const left = line[0..i];
-                const right = line[i..];
-
-                var reverse_left = std.mem.reverseIterator(left);
-                const are_equal = for (right) |r| {
-                    if (reverse_left.next()) |l| {
-                        if (l != r) {
-                            break false;
-                        }
-                    }
-                } else true;
-
-                if (!are_equal) {
-                    horizontal_mirror_candidates.items[i] = false;
-                }
-            }
+        for (lines.items) |line| {
+            try updateReflectionCandidates(u8, line, &horizontal_mirror_candidates);
         }
 
+        var vertical_mirror_candidates = std.ArrayList(bool).init(allocator);
+        defer vertical_mirror_candidates.deinit();
+        try vertical_mirror_candidates.append(false);
+
+        try updateReflectionCandidates([]const u8, lines.items, &vertical_mirror_candidates);
+
         if (std.mem.indexOfScalar(bool, horizontal_mirror_candidates.items, true)) |index| {
-            std.debug.print("columns left of vertical line: {d}\n", .{index});
+            sum += @intCast(index);
+        } else if (std.mem.indexOfScalar(bool, vertical_mirror_candidates.items, true)) |index| {
+            sum += @intCast(100 * index);
         } else {
-            std.debug.print("no vertical line\n", .{});
+            unreachable;
         }
     }
 
-    return 0;
+    return sum;
+}
+
+fn updateReflectionCandidates(comptime T: type, list: []const T, candidates: *std.ArrayList(bool)) !void {
+    for (1..list.len) |i| {
+        if (i == candidates.items.len) {
+            try candidates.append(true);
+        } else if (candidates.items[i] == false) {
+            continue;
+        }
+
+        const prefix = list[0..i];
+        const suffix = list[i..];
+
+        var reverse_prefix = std.mem.reverseIterator(prefix);
+        const are_equal = for (suffix) |s| {
+            if (reverse_prefix.next()) |p| {
+                if (T == []const u8) {
+                    if (!utils.streql(s, p)) break false;
+                } else if (T == u8) {
+                    if (s != p) break false;
+                } else {
+                    @compileError("not defined for this type");
+                }
+            }
+        } else true;
+
+        if (!are_equal) {
+            candidates.items[i] = false;
+        }
+    }
 }
 
 test {
