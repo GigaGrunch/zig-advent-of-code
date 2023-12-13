@@ -12,7 +12,11 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     while (lines_it.next()) |line| {
         var parts_it = utils.tokenize(line, " ");
         const command = parseCommand(&parts_it);
-        std.debug.print("{}\n", .{command});
+        const start_coords = try parseCoords(parts_it.next().?);
+        std.debug.assert(utils.streql(parts_it.next().?, "through"));
+        const end_coords = try parseCoords(parts_it.next().?);
+
+        std.debug.print("{} {} .. {}\n", .{ command, start_coords, end_coords });
     }
 
     return 0;
@@ -29,6 +33,14 @@ fn parseCommand(it: anytype) enum { TurnOn, TurnOff, Toggle } {
     }
 
     unreachable;
+}
+
+fn parseCoords(string: []const u8) !struct { x: usize, y: usize } {
+    var it = utils.tokenize(string, ",");
+    return .{
+        .x = try utils.parseInt(usize, it.next().?),
+        .y = try utils.parseInt(usize, it.next().?),
+    };
 }
 
 test {
