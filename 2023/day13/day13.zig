@@ -7,7 +7,19 @@ pub fn main() !void {
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     _ = allocator;
-    _ = text;
+
+    const empty_line = if (utils.containsString(text, "\r\n")) "\r\n\r\n" else "\n\n";
+
+    var patterns_it = std.mem.split(u8, text, empty_line);
+    while (patterns_it.next()) |pattern| {
+        var lines_it = utils.tokenize(pattern, "\r\n");
+        while (lines_it.next()) |line| {
+            std.debug.print("{s}\n", .{line});
+        }
+
+        std.debug.print("\n", .{});
+    }
+
     return 0;
 }
 
