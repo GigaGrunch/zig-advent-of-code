@@ -7,8 +7,28 @@ pub fn main() !void {
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     _ = allocator;
-    _ = text;
+
+    var lines_it = utils.tokenize(text, "\r\n");
+    while (lines_it.next()) |line| {
+        var parts_it = utils.tokenize(line, " ");
+        const command = parseCommand(&parts_it);
+        std.debug.print("{}\n", .{command});
+    }
+
     return 0;
+}
+
+fn parseCommand(it: anytype) enum { TurnOn, TurnOff, Toggle } {
+    const first_word = it.next().?;
+
+    if (utils.streql(first_word, "toggle")) return .Toggle;
+    if (utils.streql(first_word, "turn")) {
+        const second_word = it.next().?;
+        if (utils.streql(second_word, "on")) return .TurnOn;
+        if (utils.streql(second_word, "off")) return .TurnOff;
+    }
+
+    unreachable;
 }
 
 test {
