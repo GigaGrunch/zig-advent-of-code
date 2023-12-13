@@ -8,7 +8,7 @@ pub fn main() !void {
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     _ = allocator;
 
-    var lights = [_]bool{false} ** 1_000_000;
+    var lights = [_]i32{0} ** 1_000_000;
 
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
@@ -22,9 +22,9 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             for (start_coords.x..end_coords.x + 1) |x| {
                 const index = y * 1000 + x;
                 lights[index] = switch (command) {
-                    .TurnOn => true,
-                    .TurnOff => false,
-                    .Toggle => !lights[index],
+                    .TurnOn => lights[index] + 1,
+                    .TurnOff => @max(0, lights[index] - 1),
+                    .Toggle => lights[index] + 2,
                 };
             }
         }
@@ -33,7 +33,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var sum: i32 = 0;
 
     for (lights) |light| {
-        if (light == true) sum += 1;
+        sum += light;
     }
 
     return sum;
@@ -58,11 +58,4 @@ fn parseCoords(string: []const u8) !struct { x: usize, y: usize } {
         .x = try utils.parseInt(usize, it.next().?),
         .y = try utils.parseInt(usize, it.next().?),
     };
-}
-
-test {
-    const text = @embedFile("example.txt");
-    const expected: i32 = 1_000_000 - 1000 - 4;
-    const result = try execute(text, std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
 }
