@@ -8,6 +8,8 @@ pub fn main() !void {
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     _ = allocator;
 
+    var lights = [_]bool{false} ** 1_000_000;
+
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
         var parts_it = utils.tokenize(line, " ");
@@ -16,10 +18,25 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         std.debug.assert(utils.streql(parts_it.next().?, "through"));
         const end_coords = try parseCoords(parts_it.next().?);
 
-        std.debug.print("{} {} .. {}\n", .{ command, start_coords, end_coords });
+        for (start_coords.y..end_coords.y + 1) |y| {
+            for (start_coords.x..end_coords.x + 1) |x| {
+                const index = y * 1000 + x;
+                lights[index] = switch (command) {
+                    .TurnOn => true,
+                    .TurnOff => false,
+                    .Toggle => !lights[index],
+                };
+            }
+        }
     }
 
-    return 0;
+    var sum: i32 = 0;
+
+    for (lights) |light| {
+        if (light == true) sum += 1;
+    }
+
+    return sum;
 }
 
 fn parseCommand(it: anytype) enum { TurnOn, TurnOff, Toggle } {
