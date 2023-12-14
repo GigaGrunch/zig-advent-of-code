@@ -8,9 +8,32 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    _ = allocator;
-    _ = text;
+    var wire_names = std.ArrayList([]const u8).init(allocator);
+    var wire_values = std.ArrayList(u16).init(allocator);
+    defer {
+        wire_names.deinit();
+        wire_values.deinit();
+    }
+
+    var lines_it = utils.tokenize(text, "\r\n");
+    while (lines_it.next()) |line| {
+        var line_it = std.mem.split(u8, line, " -> ");
+        const from = line_it.next().?;
+        const to = line_it.next().?;
+        const operator = parseOperator(from);
+        std.debug.print("{} {s} -> {s}\n", .{ operator, from, to });
+    }
+
     return 0;
+}
+
+fn parseOperator(string: []const u8) enum { And, Or, LShift, RShift, Not, Store } {
+    if (utils.containsString(string, "AND")) return .And;
+    if (utils.containsString(string, "OR")) return .Or;
+    if (utils.containsString(string, "LSHIFT")) return .LShift;
+    if (utils.containsString(string, "RSHIFT")) return .RShift;
+    if (utils.containsString(string, "NOT")) return .Not;
+    return .Store;
 }
 
 test "d" {
