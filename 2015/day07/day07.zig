@@ -17,17 +17,45 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         wire_values.deinit();
     }
 
-    var lines_it = utils.tokenize(text, "\r\n");
-    while (lines_it.next()) |line| {
-        var line_it = std.mem.split(u8, line, " -> ");
-        const from = line_it.next().?;
-        const to = line_it.next().?;
-        _ = to;
+    while (true) {
+        var unknown_values: i32 = 0;
 
-        std.debug.print("from {?}\n", .{try getFromValue(from)});
+        var lines_it = utils.tokenize(text, "\r\n");
+        while (lines_it.next()) |line| {
+            var line_it = std.mem.split(u8, line, " -> ");
+            const from = line_it.next().?;
+            const to = line_it.next().?;
+            if (try getFromValue(from)) |value| {
+                var wire_index: usize = 0;
+                while (wire_index < wire_names.items.len) : (wire_index += 1) {
+                    if (utils.streql(wire_names.items[wire_index], to)) {
+                        break;
+                    }
+                }
+
+                if (wire_index == wire_names.items.len) {
+                    try wire_names.append(to);
+                    try wire_values.append(value);
+                } else {
+                    wire_values.items[wire_index] = value;
+                }
+            } else {
+                unknown_values += 1;
+            }
+        }
+
+        if (unknown_values == 0) {
+            break;
+        }
     }
 
-    return 0;
+    for (wire_names.items, 0..) |wire_name, i| {
+        if (utils.streql(wire_name, output_wire_name)) {
+            return wire_values.items[i];
+        }
+    }
+
+    unreachable;
 }
 
 fn getFromValue(string: []const u8) !?u16 {
