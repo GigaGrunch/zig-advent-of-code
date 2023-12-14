@@ -24,78 +24,86 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         .height = height,
     };
 
-    std.debug.print("\ninitial:\n\n", .{});
-    map.print();
-
-    // north
-    for (0..map.height) |y| {
-        for (0..map.width) |x| {
-            if (map.get(x, y) == 'O') {
-                var other_y = y;
-                while (other_y > 0) : (other_y -= 1) {
-                    if (map.get(x, other_y - 1) != '.') break;
-                    map.set(x, other_y, '.');
-                    map.set(x, other_y - 1, 'O');
-                }
-            }
-        }
+    var known_maps = std.ArrayList([]u8).init(allocator);
+    defer {
+        for (known_maps.items) |m| allocator.free(m);
+        known_maps.deinit();
     }
 
-    std.debug.print("\nnorth:\n\n", .{});
-    map.print();
+    const cycle_count: usize = 1000000000;
+    outer: for (0..cycle_count) |cycle| {
+        for (known_maps.items, 0..) |known, i| {
+            if (utils.streql(map.string, known)) {
+                const loop = known_maps.items[i..];
+                const remaining_cycles = cycle_count - cycle;
+                const final_i = @mod(remaining_cycles, loop.len);
+                map.string = loop[final_i];
+                break :outer;
+            }
+        }
 
-    // east
-    for (0..map.width) |x| {
+        var reference = try allocator.alloc(u8, map.string.len);
+        std.mem.copy(u8, reference, map.string);
+        try known_maps.append(reference);
+
+        // north
         for (0..map.height) |y| {
-            if (map.get(x, y) == 'O') {
-                var other_x = x;
-                while (other_x > 0) : (other_x -= 1) {
-                    if (map.get(other_x - 1, y) != '.') break;
-                    map.set(other_x, y, '.');
-                    map.set(other_x - 1, y, 'O');
+            for (0..map.width) |x| {
+                if (map.get(x, y) == 'O') {
+                    var other_y = y;
+                    while (other_y > 0) : (other_y -= 1) {
+                        if (map.get(x, other_y - 1) != '.') break;
+                        map.set(x, other_y, '.');
+                        map.set(x, other_y - 1, 'O');
+                    }
                 }
             }
         }
-    }
 
-    std.debug.print("\neast:\n\n", .{});
-    map.print();
-
-    // south
-    for (0..map.height) |inv_y| {
-        const y = map.height - 1 - inv_y;
+        // east
         for (0..map.width) |x| {
-            if (map.get(x, y) == 'O') {
-                var other_y = y;
-                while (other_y < map.height - 1) : (other_y += 1) {
-                    if (map.get(x, other_y + 1) != '.') break;
-                    map.set(x, other_y, '.');
-                    map.set(x, other_y + 1, 'O');
+            for (0..map.height) |y| {
+                if (map.get(x, y) == 'O') {
+                    var other_x = x;
+                    while (other_x > 0) : (other_x -= 1) {
+                        if (map.get(other_x - 1, y) != '.') break;
+                        map.set(other_x, y, '.');
+                        map.set(other_x - 1, y, 'O');
+                    }
+                }
+            }
+        }
+
+        // south
+        for (0..map.height) |inv_y| {
+            const y = map.height - 1 - inv_y;
+            for (0..map.width) |x| {
+                if (map.get(x, y) == 'O') {
+                    var other_y = y;
+                    while (other_y < map.height - 1) : (other_y += 1) {
+                        if (map.get(x, other_y + 1) != '.') break;
+                        map.set(x, other_y, '.');
+                        map.set(x, other_y + 1, 'O');
+                    }
+                }
+            }
+        }
+
+        // west
+        for (0..map.width) |inv_x| {
+            const x = map.width - 1 - inv_x;
+            for (0..map.height) |y| {
+                if (map.get(x, y) == 'O') {
+                    var other_x = x;
+                    while (other_x < map.width - 1) : (other_x += 1) {
+                        if (map.get(other_x + 1, y) != '.') break;
+                        map.set(other_x, y, '.');
+                        map.set(other_x + 1, y, 'O');
+                    }
                 }
             }
         }
     }
-
-    std.debug.print("\nsouth:\n\n", .{});
-    map.print();
-
-    // west
-    for (0..map.width) |inv_x| {
-        const x = map.width - 1 - inv_x;
-        for (0..map.height) |y| {
-            if (map.get(x, y) == 'O') {
-                var other_x = x;
-                while (other_x < map.width - 1) : (other_x += 1) {
-                    if (map.get(other_x + 1, y) != '.') break;
-                    map.set(other_x, y, '.');
-                    map.set(other_x + 1, y, 'O');
-                }
-            }
-        }
-    }
-
-    std.debug.print("\nwest:\n\n", .{});
-    map.print();
 
     var load: i32 = 0;
 
