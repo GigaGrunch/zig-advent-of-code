@@ -24,9 +24,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         .height = height,
     };
 
-    map.print();
-    std.debug.print("\nrolling stones\n\n", .{});
-
     for (0..map.height) |y| {
         for (0..map.width) |x| {
             if (map.get(x, y) == 'O') {
@@ -40,9 +37,18 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    map.print();
+    var load: i32 = 0;
 
-    return 0;
+    for (0..map.height) |y| {
+        const row = map.row(y);
+        for (row) |char| {
+            if (char == 'O') {
+                load += @intCast(map.height - y);
+            }
+        }
+    }
+
+    return load;
 }
 
 const Map = struct {
@@ -72,7 +78,6 @@ const Map = struct {
 };
 
 test {
-    std.debug.print("begin\n", .{});
     const text = @embedFile("example.txt");
     const expected: i32 = 136;
     const result = try execute(text, std.testing.allocator);
