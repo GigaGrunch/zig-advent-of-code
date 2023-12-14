@@ -2,14 +2,16 @@ const std = @import("std");
 const utils = @import("utils");
 
 var output_wire_name: []const u8 = "a";
+var wire_names: std.ArrayList([]const u8) = undefined;
+var wire_values: std.ArrayList(u16) = undefined;
 
 pub fn main() !void {
     try utils.main(execute);
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var wire_names = std.ArrayList([]const u8).init(allocator);
-    var wire_values = std.ArrayList(u16).init(allocator);
+    wire_names = std.ArrayList([]const u8).init(allocator);
+    wire_values = std.ArrayList(u16).init(allocator);
     defer {
         wire_names.deinit();
         wire_values.deinit();
@@ -20,20 +22,62 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         var line_it = std.mem.split(u8, line, " -> ");
         const from = line_it.next().?;
         const to = line_it.next().?;
-        const operator = parseOperator(from);
-        std.debug.print("{} {s} -> {s}\n", .{ operator, from, to });
+        _ = to;
+
+        std.debug.print("from {?}\n", .{try getFromValue(from)});
     }
 
     return 0;
 }
 
-fn parseOperator(string: []const u8) enum { And, Or, LShift, RShift, Not, Store } {
-    if (utils.containsString(string, "AND")) return .And;
-    if (utils.containsString(string, "OR")) return .Or;
-    if (utils.containsString(string, "LSHIFT")) return .LShift;
-    if (utils.containsString(string, "RSHIFT")) return .RShift;
-    if (utils.containsString(string, "NOT")) return .Not;
-    return .Store;
+fn getFromValue(string: []const u8) !?u16 {
+    var string_it = utils.tokenize(string, " ");
+
+    if (string_it.next()) |string_1| {
+        if (string_it.next()) |string_2| {
+            if (string_it.next()) |string_3| {
+                const a = try getValue(string_1);
+                if (a == null) return null;
+                const b = try getValue(string_3);
+                if (b == null) return null;
+
+                if (utils.streql(string_2, "AND")) return a.? & b.?;
+                if (utils.streql(string_2, "OR")) return a.? | b.?;
+                if (utils.streql(string_2, "LSHIFT")) return a.? << @intCast(b.?);
+                if (utils.streql(string_2, "RSHIFT")) return a.? >> @intCast(b.?);
+
+                unreachable;
+            }
+
+            const a = try getValue(string_2);
+            if (a == null) return null;
+
+            if (utils.streql(string_1, "NOT")) return ~a.?;
+
+            unreachable;
+        }
+
+        return try getValue(string_1);
+    }
+
+    unreachable;
+}
+
+fn getValue(string: []const u8) !?u16 {
+    const is_number = switch (string[0]) {
+        '0'...'9' => true,
+        else => false,
+    };
+
+    if (is_number) return try utils.parseInt(u16, string);
+
+    for (wire_names.items, 0..) |wire_name, i| {
+        if (utils.streql(wire_name, string)) {
+            return wire_values.items[i];
+        }
+    }
+
+    return null;
 }
 
 test "d" {
