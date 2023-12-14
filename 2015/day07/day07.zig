@@ -1,7 +1,6 @@
 const std = @import("std");
 const utils = @import("utils");
 
-var output_wire_name: []const u8 = "a";
 var wire_names: std.ArrayList([]const u8) = undefined;
 var wire_values: std.ArrayList(u16) = undefined;
 
@@ -49,8 +48,56 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
+    const a_value = for (wire_names.items, 0..) |wire_name, i| {
+        if (utils.streql(wire_name, "a")) {
+            break wire_values.items[i];
+        }
+    } else unreachable;
+
+    wire_names.clearRetainingCapacity();
+    wire_values.clearRetainingCapacity();
+    try wire_names.append("b");
+    try wire_values.append(a_value);
+
+    while (true) {
+        var unknown_values: i32 = 0;
+
+        var lines_it = utils.tokenize(text, "\r\n");
+        while (lines_it.next()) |line| {
+            var line_it = std.mem.split(u8, line, " -> ");
+            const from = line_it.next().?;
+            const to = line_it.next().?;
+
+            if (utils.streql(to, "b")) {
+                continue;
+            }
+
+            if (try getFromValue(from)) |value| {
+                var wire_index: usize = 0;
+                while (wire_index < wire_names.items.len) : (wire_index += 1) {
+                    if (utils.streql(wire_names.items[wire_index], to)) {
+                        break;
+                    }
+                }
+
+                if (wire_index == wire_names.items.len) {
+                    try wire_names.append(to);
+                    try wire_values.append(value);
+                } else {
+                    wire_values.items[wire_index] = value;
+                }
+            } else {
+                unknown_values += 1;
+            }
+        }
+
+        if (unknown_values == 0) {
+            break;
+        }
+    }
+
     for (wire_names.items, 0..) |wire_name, i| {
-        if (utils.streql(wire_name, output_wire_name)) {
+        if (utils.streql(wire_name, "a")) {
             return wire_values.items[i];
         }
     }
@@ -106,43 +153,4 @@ fn getValue(string: []const u8) !?u16 {
     }
 
     return null;
-}
-
-test "d" {
-    try runTest("d", 72);
-}
-
-test "e" {
-    try runTest("e", 507);
-}
-
-test "f" {
-    try runTest("f", 492);
-}
-
-test "g" {
-    try runTest("g", 114);
-}
-
-test "h" {
-    try runTest("h", 65412);
-}
-
-test "i" {
-    try runTest("i", 65079);
-}
-
-test "x" {
-    try runTest("x", 123);
-}
-
-test "y" {
-    try runTest("y", 456);
-}
-
-fn runTest(wire_name: []const u8, expected: i32) !void {
-    output_wire_name = wire_name;
-    const text = @embedFile("example.txt");
-    const result = try execute(text, std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
 }
