@@ -9,8 +9,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var boxes = [_]Box{.{ .lenses = std.ArrayList(Lens).init(allocator) }} ** 256;
     defer for (boxes) |box| box.lenses.deinit();
 
-    var sum: i32 = 0;
-
     var text_it = utils.tokenize(text, ",\r\n");
     while (text_it.next()) |string| {
         var string_it = utils.tokenize(string, "=-");
@@ -21,22 +19,21 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
         if (utils.containsItem(string, '=')) {
             const focal_length = try utils.parseInt(i32, string_it.next().?);
-            std.debug.print("box {d}, put {s}: {d}\n", .{ index, label, focal_length });
             try put(box, label, focal_length);
         } else if (utils.containsItem(string, '-')) {
-            std.debug.print("box {d}, remove {s}\n", .{ index, label });
             remove(box, label);
         } else {
             unreachable;
         }
     }
 
-    for (boxes, 0..) |box, i| {
-        if (box.lenses.items.len == 0) continue;
-        std.debug.print("Box {d}: ", .{i});
-        defer std.debug.print("\n", .{});
-        for (box.lenses.items) |lens| {
-            std.debug.print("[{s} {d}] ", .{ lens.label, lens.focal_length });
+    var sum: i32 = 0;
+
+    for (boxes, 0..) |box, box_index| {
+        for (box.lenses.items, 0..) |lens, lens_index| {
+            const box_number: i32 = @intCast(box_index + 1);
+            const lens_number: i32 = @intCast(lens_index + 1);
+            sum += box_number * lens_number * lens.focal_length;
         }
     }
 
