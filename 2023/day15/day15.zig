@@ -28,16 +28,9 @@ fn calculateHash(string: []const u8) u8 {
     return @intCast(hash);
 }
 
-test "HASH" {
-    const text = "HASH";
-    const expected: i32 = 52;
-    const result = try execute(text, std.testing.allocator);
-    try std.testing.expectEqual(expected, result);
-}
-
 test "example.txt" {
     const text = @embedFile("example.txt");
-    const expected: i32 = 1320;
+    const expected: i32 = 145;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
