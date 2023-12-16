@@ -1,19 +1,15 @@
 const std = @import("std");
 const utils = @import("utils");
 
-const verbose_mode = false;
-
 pub fn main() !void {
     try utils.main(execute);
 }
 
-fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
-    var energized = std.ArrayList(Tile).init(allocator);
-    var frontier = std.ArrayList(Beam).init(allocator);
+fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {   
+    var starting_configs = std.ArrayList(Beam).init(allocator);
     var string = std.ArrayList(u8).init(allocator);
     defer {
-        energized.deinit();
-        frontier.deinit();
+        starting_configs.deinit();
         string.deinit();
     }
 
@@ -31,65 +27,79 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     }
     map.string = string.items;
 
-    printVerbose("width: {d}, height: {d}\n", .{map.width, map.height});
+    for (0..map.width) |x| {
+        try starting_configs.append(.{ .x = x, .y = 0, .direction = .Down });
+        try starting_configs.append(.{ .x = x, .y = map.height - 1, .direction = .Up });
+    }
 
-    try frontier.append(.{ .x = 0, .y = 0, .direction = .Right });
-    while (frontier.items.len > 0) {
-        var beam = frontier.pop();
-        while (true) {
-            const index = beam.y * map.width + beam.x;
+    for (0..map.height) |y| {
+        try starting_configs.append(.{ .x = 0, .y = y, .direction = .Right });
+        try starting_configs.append(.{ .x = map.width - 1, .y = y, .direction = .Left });
+    }
 
-            var tile: *Tile = undefined;
+    var highest_result: usize = 0;
 
-            if (!for (energized.items) |*t| {
-                if (t.index == index) {
-                    tile = t;
-                    break true;
+    for (starting_configs.items) |starting_config| {
+        var energized = std.ArrayList(Tile).init(allocator);
+        var frontier = std.ArrayList(Beam).init(allocator);
+        defer {
+            energized.deinit();
+            frontier.deinit();
+        }
+
+        try frontier.append(starting_config);
+
+        while (frontier.items.len > 0) {
+            var beam = frontier.pop();
+            while (true) {
+                const index = beam.y * map.width + beam.x;
+
+                var tile: *Tile = undefined;
+
+                if (!for (energized.items) |*t| {
+                    if (t.index == index) {
+                        tile = t;
+                        break true;
+                    }
+                } else false) {
+                    try energized.append(.{ .index = index });
+                    tile = &energized.items[energized.items.len - 1];
                 }
-            } else false) {
-                try energized.append(.{ .index = index });
-                tile = &energized.items[energized.items.len - 1];
-            }
 
-            if (tile.isEnergized(beam.direction)) break;
-            tile.setEnergized(beam.direction);
+                if (tile.isEnergized(beam.direction)) break;
+                tile.setEnergized(beam.direction);
 
-            printVerbose("beam at {d},{d} toward {}\n", .{beam.x, beam.y, beam.direction});
-
-            switch (map.string[index]) {
-                '.' => if (!beam.step(map)) break,
-                '/', '\\' => {
-                    beam.changeDirection(map.string[index]);
-                    if (!beam.step(map)) break;
-                },
-                '-' => switch (beam.direction) {
-                    .Right, .Left => if (!beam.step(map)) break,
-                    .Up, .Down => {
-                        beam.direction = .Left;
-                        try frontier.append(beam);
-                        beam.direction = .Right;
+                switch (map.string[index]) {
+                    '.' => if (!beam.step(map)) break,
+                    '/', '\\' => {
+                        beam.changeDirection(map.string[index]);
+                        if (!beam.step(map)) break;
                     },
-                },
-                '|' => switch (beam.direction) {
-                    .Up, .Down => if (!beam.step(map)) break,
-                    .Right, .Left => {
-                        beam.direction = .Up;
-                        try frontier.append(beam);
-                        beam.direction = .Down;
+                    '-' => switch (beam.direction) {
+                        .Right, .Left => if (!beam.step(map)) break,
+                        .Up, .Down => {
+                            beam.direction = .Left;
+                            try frontier.append(beam);
+                            beam.direction = .Right;
+                        },
                     },
-                },
-                else => unreachable,
+                    '|' => switch (beam.direction) {
+                        .Up, .Down => if (!beam.step(map)) break,
+                        .Right, .Left => {
+                            beam.direction = .Up;
+                            try frontier.append(beam);
+                            beam.direction = .Down;
+                        },
+                    },
+                    else => unreachable,
+                }
             }
         }
+
+        highest_result = @max(highest_result, energized.items.len);
     }
 
-    return energized.items.len;
-}
-
-fn printVerbose(comptime format: []const u8, args: anytype) void {
-    if (verbose_mode) {
-        std.debug.print(format, args);
-    }
+    return highest_result;
 }
 
 const Tile = struct {
@@ -198,7 +208,7 @@ const Map = struct {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: usize = 46;
+    const expected: usize = 51;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
