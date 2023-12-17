@@ -43,15 +43,16 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
         .goal_distance = (width - 1) + (height - 1),
     });
 
-    var visited = std.ArrayList(State).init(allocator);
+    var visited = std.AutoHashMap(Visited, usize).init(allocator);
     defer visited.deinit();
 
     while (frontier.items.len > 0) {
         var state = frontier.pop();
-        try visited.append(state);
+        try visited.put(Visited.init(state), state.cost);
 
         if (state.x == width - 1 and state.y == height - 1) {
             lowest_cost = state.cost;
+            std.debug.print("new lowest: {d} ({d} left)\n", .{lowest_cost, frontier.items.len});
         } else {
             var next_states = [_]?State {
                 state.turnLeft(),
@@ -63,15 +64,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
                 if (next_state) |next| {
                     if (next.cost >= lowest_cost or next.cost + next.goal_distance >= lowest_cost) continue;
 
-                    if (for (visited.items) |*other| {
-                        if (next.x == other.x and next.y == other.y and next.dir == other.dir and next.run_length == other.run_length) {
-                            if (next.cost < other.cost) {
-                                other.cost = next.cost;
-                                try insert(&frontier, next);
-                            }
-                            break false;
+                    const next_visited = Visited.init(next);
+                    if (visited.get(next_visited)) |other_cost| {
+                        if (next.cost < other_cost) {
+                            try visited.put(next_visited, next.cost);
+                            try insert(&frontier, next);
                         }
-                    } else true) {
+                    } else {
                         try insert(&frontier, next);
                     }
                 }
@@ -81,6 +80,22 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
 
     return lowest_cost;
 }
+
+const Visited = struct {
+    x: usize,
+    y: usize,
+    dir: Direction,
+    run_length: usize,
+
+    fn init(state: State) Visited {
+        return .{
+            .x = state.x,
+            .y = state.y,
+            .dir = state.dir,
+            .run_length = state.run_length,
+        };
+    }
+};
 
 fn insert(frontier: *std.ArrayList(State), state: State) !void {
     const index = for (frontier.items, 0..) |other, i| {
