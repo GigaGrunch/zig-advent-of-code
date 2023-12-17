@@ -51,7 +51,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
         const state = frontier.pop();
         const cost = cost_frontier.pop();
 
-        if (state.x == width - 1 and state.y == height - 1) {
+        if (state.x == width - 1 and state.y == height - 1 and cost < lowest_cost) {
             lowest_cost = cost;
             std.debug.print("new lowest: {d} ({d} left)\n", .{lowest_cost, frontier.items.len});
         } else {
