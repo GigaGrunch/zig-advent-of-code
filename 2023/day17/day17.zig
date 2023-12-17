@@ -51,8 +51,10 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
         const state = frontier.pop();
         const cost = cost_frontier.pop();
 
-        if (state.x == width - 1 and state.y == height - 1 and cost < lowest_cost) {
-            lowest_cost = cost;
+        if (state.x == width - 1 and state.y == height - 1 and state.run_length >= 4) {
+            if (cost < lowest_cost) {
+                lowest_cost = cost;
+            }
         } else {
             try visited.put(state, cost);
 
@@ -114,7 +116,7 @@ const State = struct {
     dir: Direction,
 
     fn goStraight(state: State) ?State {
-        if (state.run_length == 3) return null;
+        if (state.run_length == 10) return null;
 
         var copy = state;
 
@@ -127,6 +129,8 @@ const State = struct {
     }
 
     fn turnLeft(state: State) ?State {
+        if (state.run_length < 4) return null;
+
         var copy = state;
         copy.dir = switch (state.dir) {
             .Up => .Left,
@@ -144,6 +148,8 @@ const State = struct {
     }
 
     fn turnRight(state: State) ?State {
+        if (state.run_length < 4) return null;
+        
         var copy = state;
         copy.dir = switch (state.dir) {
             .Up => .Right,
@@ -191,14 +197,14 @@ const Direction = enum {
     Right,
 };
 
-test {
+test "example01" {
     const text = @embedFile("example01.txt");
     const expected: usize = 94;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
 
-test {
+test "example02" {
     const text = @embedFile("example02.txt");
     const expected: usize = 71;
     const result = try execute(text, std.testing.allocator);
