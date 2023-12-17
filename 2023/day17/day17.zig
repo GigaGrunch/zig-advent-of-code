@@ -85,7 +85,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
 }
 
 fn highDistanceHighCostFirst(_: void, a: State, b: State) bool {
-    return a.goal_distance >= b.goal_distance and a.cost > b.cost;
+    return if (a.goal_distance == b.goal_distance) a.cost > b.cost else a.goal_distance > b.goal_distance;
 }
 
 fn distance(state: State) usize {

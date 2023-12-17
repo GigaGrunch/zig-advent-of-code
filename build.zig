@@ -48,6 +48,10 @@ pub fn build(b: *std.Build) !void {
             run_cmd.step.dependOn(b.getInstallStep());
             run_cmd.addArg(input_path.items);
 
+            const run_step = b.step(exe_name.items, "");
+            run_step.dependOn(&run_cmd.step);
+            run_all_step.dependOn(&run_cmd.step);
+
             const unit_tests = b.addTest(.{
                 .root_source_file = .{ .path = source_path.items },
                 .target = target,
@@ -56,12 +60,6 @@ pub fn build(b: *std.Build) !void {
             unit_tests.addModule("utils", utils);
             const run_unit_tests = b.addRunArtifact(unit_tests);
             test_all_step.dependOn(&run_unit_tests.step);
-
-            const run_step = b.step(exe_name.items, "");
-            run_step.dependOn(&run_unit_tests.step);
-            run_step.dependOn(&run_cmd.step);
-            run_all_step.dependOn(&run_unit_tests.step);
-            run_all_step.dependOn(&run_cmd.step);
         }
     }
 }
