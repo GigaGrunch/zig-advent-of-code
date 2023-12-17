@@ -53,7 +53,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
 
         if (state.x == width - 1 and state.y == height - 1 and cost < lowest_cost) {
             lowest_cost = cost;
-            std.debug.print("new lowest: {d} ({d} left)\n", .{lowest_cost, frontier.items.len});
         } else {
             try visited.put(state, cost);
 
@@ -193,8 +192,15 @@ const Direction = enum {
 };
 
 test {
-    const text = @embedFile("example.txt");
-    const expected: usize = 102;
+    const text = @embedFile("example01.txt");
+    const expected: usize = 94;
+    const result = try execute(text, std.testing.allocator);
+    try std.testing.expectEqual(expected, result);
+}
+
+test {
+    const text = @embedFile("example02.txt");
+    const expected: usize = 71;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
