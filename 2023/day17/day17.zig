@@ -73,10 +73,10 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
                     if (visited.get(next)) |other_cost| {
                         if (next_cost < other_cost) {
                             try visited.put(next, next_cost);
-                            try insert(&frontier, &cost_frontier, next, next_cost);
+                            try insert(&frontier, &cost_frontier, next, next_cost, lowest_cost);
                         }
                     } else {
-                        try insert(&frontier, &cost_frontier, next, next_cost);
+                        try insert(&frontier, &cost_frontier, next, next_cost, lowest_cost);
                     }
                 }
             }
@@ -86,11 +86,15 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     return lowest_cost;
 }
 
-fn insert(frontier: *std.ArrayList(State), cost_frontier: *std.ArrayList(usize), state: State, cost: usize) !void {
+fn insert(frontier: *std.ArrayList(State), cost_frontier: *std.ArrayList(usize), state: State, cost: usize, lowest_cost: usize) !void {
     const index = for (frontier.items, cost_frontier.items, 0..) |other, other_cost, i| {
         const state_distance = distance(state);
         const other_distance = distance(other);
-        if (state_distance > other_distance or state_distance == other_distance and cost > other_cost) break i;
+        if (lowest_cost == std.math.maxInt(usize)) {
+            if (state_distance > other_distance or state_distance == other_distance and cost > other_cost) break i;
+        } else {
+            if (cost < other_cost) break i;
+        }
     } else frontier.items.len;
     try frontier.insert(index, state);
     try cost_frontier.insert(index, cost);
