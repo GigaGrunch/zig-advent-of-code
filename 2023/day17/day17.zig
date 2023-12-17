@@ -47,8 +47,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     defer visited.deinit();
 
     while (frontier.items.len > 0) {
-        std.mem.sort(State, frontier.items, {}, highDistanceHighCostFirst);
-
         var state = frontier.pop();
         try visited.append(state);
 
@@ -69,12 +67,12 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
                         if (next.x == other.x and next.y == other.y and next.dir == other.dir and next.run_length == other.run_length) {
                             if (next.cost < other.cost) {
                                 other.cost = next.cost;
-                                try frontier.append(next);
+                                try insert(&frontier, next);
                             }
                             break false;
                         }
                     } else true) {
-                        try frontier.append(next);
+                        try insert(&frontier, next);
                     }
                 }
             }
@@ -82,6 +80,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     }
 
     return lowest_cost;
+}
+
+fn insert(frontier: *std.ArrayList(State), state: State) !void {
+    const index = for (frontier.items, 0..) |other, i| {
+        if (state.goal_distance > other.goal_distance or state.goal_distance == other.goal_distance and state.cost > other.cost) break i;
+    } else frontier.items.len;
+    try frontier.insert(index, state);
 }
 
 fn highDistanceHighCostFirst(_: void, a: State, b: State) bool {
