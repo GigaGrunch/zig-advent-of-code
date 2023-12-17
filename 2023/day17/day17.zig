@@ -28,12 +28,51 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         std.debug.print("{any}\n", .{map[start..end]});
     }
 
-    return 0;
+    var frontier = std.ArrayList(State).init(allocator);
+    defer frontier.deinit();
+
+    var lowest_cost: i32 = std.math.maxInt(i32);
+    try frontier.append(.{
+        .x = 0,
+        .y = 0,
+        .run_length = 0,
+        .cost = 0,
+        .dir = .Right,
+    });
+    try frontier.append(.{
+        .x = 0,
+        .y = 0,
+        .run_length = 0,
+        .cost = 0,
+        .dir = .Down,
+    });
+
+    while (frontier.items.len > 0) {
+        var state = frontier.pop();
+        std.debug.print("{}\n", .{state});
+    }
+
+    return lowest_cost;
 }
 
 var map: []const i32 = undefined;
 var width: usize = undefined;
 var height: usize = undefined;
+
+const State = struct {
+    x: usize,
+    y: usize,
+    run_length: i32,
+    cost: i32,
+    dir: Direction,
+};
+
+const Direction = enum {
+    Up,
+    Down,
+    Left,
+    Right,
+};
 
 test {
     const text = @embedFile("example.txt");
