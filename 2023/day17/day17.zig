@@ -25,35 +25,38 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     var frontier = std.ArrayList(State).init(allocator);
     defer frontier.deinit();
 
+    var cost_frontier = std.ArrayList(usize).init(allocator);
+    defer cost_frontier.deinit();
+
+    var visited = std.AutoHashMap(State, usize).init(allocator);
+    defer visited.deinit();
+
     var lowest_cost: usize = std.math.maxInt(usize);
     try frontier.append(.{
         .x = 0,
         .y = 0,
         .run_length = 0,
-        .cost = 0,
         .dir = .Right,
-        .goal_distance = (width - 1) + (height - 1),
     });
+    try cost_frontier.append(0);
     try frontier.append(.{
         .x = 0,
         .y = 0,
         .run_length = 0,
-        .cost = 0,
         .dir = .Down,
-        .goal_distance = (width - 1) + (height - 1),
     });
-
-    var visited = std.AutoHashMap(Visited, usize).init(allocator);
-    defer visited.deinit();
+    try cost_frontier.append(0);
 
     while (frontier.items.len > 0) {
-        var state = frontier.pop();
-        try visited.put(Visited.init(state), state.cost);
+        const state = frontier.pop();
+        const cost = cost_frontier.pop();
 
         if (state.x == width - 1 and state.y == height - 1) {
-            lowest_cost = state.cost;
+            lowest_cost = cost;
             std.debug.print("new lowest: {d} ({d} left)\n", .{lowest_cost, frontier.items.len});
         } else {
+            try visited.put(state, cost);
+
             var next_states = [_]?State {
                 state.turnLeft(),
                 state.turnRight(),
@@ -62,16 +65,18 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
 
             for (next_states) |next_state| {
                 if (next_state) |next| {
-                    if (next.cost >= lowest_cost or next.cost + next.goal_distance >= lowest_cost) continue;
+                    const next_cost = cost + map[next.y * width + next.x];
+                    const next_goal_distance = distance(next);
 
-                    const next_visited = Visited.init(next);
-                    if (visited.get(next_visited)) |other_cost| {
-                        if (next.cost < other_cost) {
-                            try visited.put(next_visited, next.cost);
-                            try insert(&frontier, next);
+                    if (next_cost + next_goal_distance >= lowest_cost) continue;
+
+                    if (visited.get(next)) |other_cost| {
+                        if (next_cost < other_cost) {
+                            try visited.put(next, next_cost);
+                            try insert(&frontier, &cost_frontier, next, next_cost);
                         }
                     } else {
-                        try insert(&frontier, next);
+                        try insert(&frontier, &cost_frontier, next, next_cost);
                     }
                 }
             }
@@ -81,31 +86,14 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
     return lowest_cost;
 }
 
-const Visited = struct {
-    x: usize,
-    y: usize,
-    dir: Direction,
-    run_length: usize,
-
-    fn init(state: State) Visited {
-        return .{
-            .x = state.x,
-            .y = state.y,
-            .dir = state.dir,
-            .run_length = state.run_length,
-        };
-    }
-};
-
-fn insert(frontier: *std.ArrayList(State), state: State) !void {
-    const index = for (frontier.items, 0..) |other, i| {
-        if (state.goal_distance > other.goal_distance or state.goal_distance == other.goal_distance and state.cost > other.cost) break i;
+fn insert(frontier: *std.ArrayList(State), cost_frontier: *std.ArrayList(usize), state: State, cost: usize) !void {
+    const index = for (frontier.items, cost_frontier.items, 0..) |other, other_cost, i| {
+        const state_distance = distance(state);
+        const other_distance = distance(other);
+        if (state_distance > other_distance or state_distance == other_distance and cost > other_cost) break i;
     } else frontier.items.len;
     try frontier.insert(index, state);
-}
-
-fn highDistanceHighCostFirst(_: void, a: State, b: State) bool {
-    return if (a.goal_distance == b.goal_distance) a.cost > b.cost else a.goal_distance > b.goal_distance;
+    try cost_frontier.insert(index, cost);
 }
 
 fn distance(state: State) usize {
@@ -120,9 +108,7 @@ const State = struct {
     x: usize,
     y: usize,
     run_length: usize,
-    cost: usize,
     dir: Direction,
-    goal_distance: usize,
 
     fn goStraight(state: State) ?State {
         if (state.run_length == 3) return null;
@@ -191,8 +177,6 @@ const State = struct {
             },
         }
 
-        state.cost += map[state.y * width + state.x];
-        state.goal_distance = distance(state.*);
         return true;
     }
 };
