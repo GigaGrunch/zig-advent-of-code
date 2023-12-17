@@ -22,12 +22,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     map = map_list.items;
     width = map.len / height;
 
-    for (0..height) |y| {
-        const start = y * width;
-        const end = start + width;
-        std.debug.print("{any}\n", .{map[start..end]});
-    }
-
     var frontier = std.ArrayList(State).init(allocator);
     defer frontier.deinit();
 
@@ -47,12 +41,57 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         .dir = .Down,
     });
 
+    var visited = std.ArrayList(State).init(allocator);
+    defer visited.deinit();
+
     while (frontier.items.len > 0) {
+        std.mem.sort(State, frontier.items, {}, higherDistance);
+
         var state = frontier.pop();
-        std.debug.print("{}\n", .{state});
+        try visited.append(state);
+
+        if (state.x == width - 1 and state.y == height - 1) {
+            lowest_cost = state.cost;
+        } else {
+            var next_states = [_]?State {
+                state.turnLeft(),
+                state.turnRight(),
+                state.goStraight(),
+            };
+
+            for (next_states) |next_state| {
+                if (next_state) |next| {
+                    if (next.cost >= lowest_cost) continue;
+
+                    if (for (visited.items) |*other| {
+                        if (next.x == other.x and next.y == other.y and next.dir == other.dir and next.run_length == other.run_length) {
+                            if (next.cost < other.cost) {
+                                other.cost = next.cost;
+                                try frontier.append(next);
+                            }
+                            break false;
+                        }
+                    } else true) {
+                        try frontier.append(next);
+                    }
+                }
+            }
+        }
     }
 
     return lowest_cost;
+}
+
+fn higherCost(_: void, a: State, b: State) bool {
+    return a.cost > b.cost;
+}
+
+fn higherDistance(_: void, a: State, b: State) bool {
+    return distance(a) > distance(b);
+}
+
+fn distance(state: State) usize {
+    return (width - 1 - state.x) + (height - 1 - state.y);
 }
 
 var map: []const i32 = undefined;
@@ -65,6 +104,77 @@ const State = struct {
     run_length: i32,
     cost: i32,
     dir: Direction,
+
+    fn goStraight(state: State) ?State {
+        if (state.run_length == 3) return null;
+
+        var copy = state;
+
+        if (copy.step()) {
+            copy.run_length += 1;
+            return copy;
+        }
+
+        return null;
+    }
+
+    fn turnLeft(state: State) ?State {
+        var copy = state;
+        copy.dir = switch (state.dir) {
+            .Up => .Left,
+            .Down => .Right,
+            .Left => .Down,
+            .Right => .Up,
+        };
+
+        if (copy.step()) {
+            copy.run_length = 1;
+            return copy;
+        }
+
+        return null;
+    }
+
+    fn turnRight(state: State) ?State {
+        var copy = state;
+        copy.dir = switch (state.dir) {
+            .Up => .Right,
+            .Down => .Left,
+            .Left => .Up,
+            .Right => .Down,
+        };
+
+        if (copy.step()) {
+            copy.run_length = 1;
+            return copy;
+        }
+
+        return null;
+    }
+
+    fn step(state: *State) bool {
+        switch (state.dir) {
+            .Up => {
+                if (state.y == 0) return false;
+                state.y -= 1;
+            },
+            .Down => {
+                if (state.y == height - 1) return false;
+                state.y += 1;
+            },
+            .Left => {
+                if (state.x == 0) return false;
+                state.x -= 1;
+            },
+            .Right => {
+                if (state.x == width - 1) return false;
+                state.x += 1;
+            },
+        }
+
+        state.cost += map[state.y * width + state.x];
+        return true;
+    }
 };
 
 const Direction = enum {
