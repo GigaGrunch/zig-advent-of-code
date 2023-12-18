@@ -54,12 +54,11 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !usize {
         if (state.x == width - 1 and state.y == height - 1 and state.run_length >= 4) {
             if (cost < lowest_cost) {
                 lowest_cost = cost;
-                std.debug.print("new lowest: {d}\n", .{lowest_cost});
             }
         } else {
             try visited.put(state, cost);
 
-            var next_states = [_]?State {
+            var next_states = [_]?State{
                 state.turnLeft(),
                 state.turnRight(),
                 state.goStraight(),
@@ -158,7 +157,7 @@ const State = struct {
 
     fn turnRight(state: State) ?State {
         if (state.run_length < 4) return null;
-        
+
         var copy = state;
         copy.dir = switch (state.dir) {
             .Up => .Right,
