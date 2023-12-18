@@ -6,8 +6,8 @@ pub fn main() !void {
 }
 
 fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
-    var horizontal_edges = std.ArrayList(HorizontalEdge).init(allocator);
-    var vertical_edges = std.ArrayList(VerticalEdge).init(allocator);
+    var horizontal_edges = std.ArrayList(Edge).init(allocator);
+    var vertical_edges = std.ArrayList(Edge).init(allocator);
     defer {
         horizontal_edges.deinit();
         vertical_edges.deinit();
@@ -24,24 +24,57 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
             switch (dir) {
                 'U' => {
-                    pos.y -= count - 1;
-                    try vertical_edges.append(.{ .start = pos, .length = count });
-                    pos.y -= 1;
+                    var start = pos;
+                    start.y -= count - 1;
+                    var end = pos;
+                    try vertical_edges.append(.{ .start = start, .end = end });
+                    pos.y -= count;
                 },
                 'D' => {
-                    try vertical_edges.append(.{ .start = pos, .length = count });
+                    var start = pos;
+                    var end = pos;
+                    end.y += count - 1;
+                    try vertical_edges.append(.{ .start = start, .end = end });
                     pos.y += count;
                 },
                 'L' => {
-                    pos.x -= count - 1;
-                    try horizontal_edges.append(.{ .start = pos, .length = count });
-                    pos.x -= 1;
+                    var start = pos;
+                    start.x -= count - 1;
+                    var end = pos;
+                    try horizontal_edges.append(.{ .start = start, .end = end });
+                    pos.x -= count;
                 },
                 'R' => {
-                    try horizontal_edges.append(.{ .start = pos, .length = count });
+                    var start = pos;
+                    var end = pos;
+                    end.x += count - 1;
+                    try horizontal_edges.append(.{ .start = start, .end = end });
                     pos.x += count;
                 },
                 else => unreachable,
+            }
+        }
+    }
+
+    for (horizontal_edges.items) |*horizontal_edge| {
+        var left = horizontal_edge.start;
+        left.x -= 1;
+        var right = horizontal_edge.end;
+        right.x += 1;
+
+        for (vertical_edges.items) |*vertical_edge| {
+            if (std.meta.eql(vertical_edge.start, right)) {
+                horizontal_edge.end.x += 1;
+                vertical_edge.start.y += 1;
+            } else if (std.meta.eql(vertical_edge.end, right)) {
+                horizontal_edge.end.x += 1;
+                vertical_edge.end.y -= 1;
+            } else if (std.meta.eql(vertical_edge.start, left)) {
+                horizontal_edge.start.x -= 1;
+                vertical_edge.start.y += 1;
+            } else if (std.meta.eql(vertical_edge.end, left)) {
+                horizontal_edge.start.x -= 1;
+                vertical_edge.end.y -= 1;
             }
         }
     }
@@ -50,25 +83,17 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     var bottom_right = Pos{ .x = std.math.minInt(i32), .y = std.math.minInt(i32) };
 
     for (horizontal_edges.items) |edge| {
-        const min_x = edge.start.x;
-        const max_x = edge.start.x + edge.length;
-        const y = edge.start.y;
-
-        top_left.x = @min(top_left.x, min_x);
-        top_left.y = @min(top_left.y, y);
-        bottom_right.x = @max(bottom_right.x, max_x);
-        bottom_right.y = @max(bottom_right.y, y);
+        top_left.x = @min(top_left.x, edge.start.x);
+        top_left.y = @min(top_left.y, edge.start.y);
+        bottom_right.x = @max(bottom_right.x, edge.end.x);
+        bottom_right.y = @max(bottom_right.y, edge.end.y);
     }
 
     for (vertical_edges.items) |edge| {
-        const x = edge.start.x;
-        const min_y = edge.start.y;
-        const max_y = edge.start.y + edge.length;
-
-        top_left.x = @min(top_left.x, x);
-        top_left.y = @min(top_left.y, min_y);
-        bottom_right.x = @max(bottom_right.x, x);
-        bottom_right.y = @max(bottom_right.y, max_y);
+        top_left.x = @min(top_left.x, edge.start.x);
+        top_left.y = @min(top_left.y, edge.start.y);
+        bottom_right.x = @max(bottom_right.x, edge.end.x);
+        bottom_right.y = @max(bottom_right.y, edge.end.y);
     }
 
     std.debug.print("{} .. {}\n", .{ top_left, bottom_right });
@@ -79,8 +104,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     width = @intCast(bottom_right.x - top_left.x);
     height = @intCast(bottom_right.y - top_left.y);
 
-    for (0..height) |y_index| {
-        for (0..width) |x_index| {
+    for (0..height + 1) |y_index| {
+        for (0..width + 1) |x_index| {
             const y = @as(i32, @intCast(y_index)) + top_left.y;
             const x = @as(i32, @intCast(x_index)) + top_left.x;
             const pos = Pos{ .x = x, .y = y };
@@ -110,21 +135,13 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 var width: usize = undefined;
 var height: usize = undefined;
 
-const HorizontalEdge = struct {
+const Edge = struct {
     start: Pos,
-    length: i32,
+    end: Pos,
 
-    fn contains(edge: HorizontalEdge, pos: Pos) bool {
-        return edge.start.y == pos.y and pos.x >= edge.start.x and edge.start.x + edge.length > pos.x;
-    }
-};
-
-const VerticalEdge = struct {
-    start: Pos,
-    length: i32,
-
-    fn contains(edge: VerticalEdge, pos: Pos) bool {
-        return edge.start.x == pos.x and pos.y >= edge.start.y and edge.start.y + edge.length > pos.y;
+    fn contains(edge: Edge, pos: Pos) bool {
+        return pos.x >= edge.start.x and edge.end.x >= pos.x and
+            pos.y >= edge.start.y and edge.end.y >= pos.y;
     }
 };
 
