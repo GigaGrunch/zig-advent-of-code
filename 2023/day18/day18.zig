@@ -60,7 +60,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             if (utils.containsItem(visited_positions.items, Pos{ .x = x_pos, .y = y_pos })) {
                 try map.append(.Edge);
             } else {
-                try map.append(.Outer);
+                try map.append(.Unknown);
             }
         }
     }
@@ -71,27 +71,109 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             const index = y * width + x;
             switch (map.items[index]) {
                 .Edge, .Inner => std.debug.print("#", .{}),
-                .Outer => std.debug.print(".", .{}),
+                .Unknown, .Outer => std.debug.print(".", .{}),
             }
         }
         std.debug.print("\n", .{});
     }
 
-    for (0..height) |y| {
-        var is_outside = true;
+    while (true) {
+        for (0..height) |y| {
+            for (0..width) |x| {
+                const index = y * width + x;
 
-        for (0..width) |x| {
-            const index = y * width + x;
-            switch (map.items[index]) {
-                .Edge => {
-                    if (x < width - 1) {
-                        const next = map.items[index + 1];
-                        if (next != .Edge) is_outside = !is_outside;
+                if (map.items[index] != .Unknown) continue;
+
+                if (x == 0 or y == 0) {
+                    map.items[index] = .Outer;
+                    continue;
+                }
+                if (x > 0) {
+                    const prev = map.items[index - 1];
+                    if (prev != .Unknown and prev != .Edge) {
+                        map.items[index] = prev;
+                        continue;
                     }
-                },
-                .Outer, .Inner => map.items[index] = if (is_outside) .Outer else .Inner,
+                }
+                if (x == 1) {
+                    const prev = map.items[index - 1];
+                    if (prev == .Edge) {
+                        map.items[index] = .Inner;
+                        continue;
+                    }
+                }
+                if (y > 0) {
+                    const prev = map.items[index - width];
+                    if (prev != .Unknown and prev != .Edge) {
+                        map.items[index] = prev;
+                        continue;
+                    }
+                }
+                if (y == 1) {
+                    const prev = map.items[index - width];
+                    if (prev == .Edge) {
+                        map.items[index] = .Inner;
+                        continue;
+                    }
+                }
             }
         }
+
+        for (0..height) |inv_y| {
+            for (0..width) |inv_x| {
+                const x = width - 1 - inv_x;
+                const y = height - 1 - inv_y;
+
+                const index = y * width + x;
+
+                if (map.items[index] != .Unknown) continue;
+
+                if (x == width - 1 or y == height - 1) {
+                    map.items[index] = .Outer;
+                    continue;
+                }
+                if (x < width - 1) {
+                    const next = map.items[index + 1];
+                    if (next != .Unknown and next != .Edge) {
+                        map.items[index] = next;
+                        continue;
+                    }
+                }
+                if (x == width - 2) {
+                    const next = map.items[index + 1];
+                    if (next == .Edge) {
+                        map.items[index] = .Inner;
+                        continue;
+                    }
+                }
+                if (y < height - 1) {
+                    const next = map.items[index + width];
+                    if (next != .Unknown and next != .Edge) {
+                        map.items[index] = next;
+                        continue;
+                    }
+                }
+                if (y == height - 2) {
+                    const next = map.items[index + width];
+                    if (next == .Edge) {
+                        map.items[index] = .Inner;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        var unknown_count: i32 = 0;
+        for (0..height) |y| {
+            for (0..width) |x| {
+                const index = y * width + x;
+                if (map.items[index] == .Unknown) {
+                    unknown_count += 1;
+                }
+            }
+        }
+
+        if (unknown_count == 0) break;
     }
 
     var count: i32 = 0;
@@ -105,7 +187,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
                     std.debug.print("#", .{});
                     count += 1;
                 },
-                .Outer => std.debug.print(".", .{}),
+                .Unknown, .Outer => std.debug.print(".", .{}),
             }
         }
         std.debug.print("\n", .{});
@@ -121,6 +203,7 @@ const Pos = struct {
 
 const Tile = enum {
     Edge,
+    Unknown,
     Outer,
     Inner,
 };
