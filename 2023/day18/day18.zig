@@ -5,7 +5,7 @@ pub fn main() !void {
     try utils.main(execute);
 }
 
-fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
+fn execute(text: []const u8, allocator: std.mem.Allocator) !u64 {
     var visited_positions = std.ArrayList(Pos).init(allocator);
     defer visited_positions.deinit();
 
@@ -65,17 +65,17 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    std.debug.print("outline:\n", .{});
-    for (0..height) |y| {
-        for (0..width) |x| {
-            const index = y * width + x;
-            switch (map.items[index]) {
-                .Edge, .Inner => std.debug.print("#", .{}),
-                .Unknown, .Outer => std.debug.print(".", .{}),
-            }
-        }
-        std.debug.print("\n", .{});
-    }
+    // std.debug.print("outline:\n", .{});
+    // for (0..height) |y| {
+    //     for (0..width) |x| {
+    //         const index = y * width + x;
+    //         switch (map.items[index]) {
+    //             .Edge, .Inner => std.debug.print("#", .{}),
+    //             .Unknown, .Outer => std.debug.print(".", .{}),
+    //         }
+    //     }
+    //     std.debug.print("\n", .{});
+    // }
 
     while (true) {
         for (0..height) |y| {
@@ -163,7 +163,7 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             }
         }
 
-        var unknown_count: i32 = 0;
+        var unknown_count: u64 = 0;
         for (0..height) |y| {
             for (0..width) |x| {
                 const index = y * width + x;
@@ -176,21 +176,18 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         if (unknown_count == 0) break;
     }
 
-    var count: i32 = 0;
+    var count: u64 = 0;
 
-    std.debug.print("lagoon:\n", .{});
     for (0..height) |y| {
         for (0..width) |x| {
             const index = y * width + x;
             switch (map.items[index]) {
                 .Edge, .Inner => {
-                    std.debug.print("#", .{});
                     count += 1;
                 },
-                .Unknown, .Outer => std.debug.print(".", .{}),
+                .Unknown, .Outer => {},
             }
         }
-        std.debug.print("\n", .{});
     }
 
     return count;
@@ -210,7 +207,7 @@ const Tile = enum {
 
 test {
     const text = @embedFile("example.txt");
-    const expected: i32 = 62;
+    const expected: u64 = 952408144115;
     const result = try execute(text, std.testing.allocator);
     try std.testing.expectEqual(expected, result);
 }
