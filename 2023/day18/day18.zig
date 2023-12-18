@@ -47,13 +47,29 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         bottom_right.y = @max(bottom_right.y, pos.y);
     }
 
-    std.debug.print("initial map:\n", .{});
+    const width = 1 + bottom_right.x - top_left.x;
+    const height = 1 + bottom_right.y - top_left.y;
+
+    var map = std.ArrayList(Tile).init(allocator);
+    defer map.deinit();
+
     for (top_left.y..bottom_right.y + 1) |y| {
         for (top_left.x..bottom_right.x + 1) |x| {
             if (utils.containsItem(visited_positions.items, Pos{ .x = x, .y = y })) {
-                std.debug.print("#", .{});
+                try map.append(.{ .edge = undefined });
             } else {
-                std.debug.print(".", .{});
+                try map.append(.{ .other = undefined });
+            }
+        }
+    }
+
+    std.debug.print("width: {d}, height: {d}\n", .{ width, height });
+    for (0..height) |y| {
+        for (0..width) |x| {
+            const index = y * width + x;
+            switch (map.items[index]) {
+                .edge => std.debug.print("#", .{}),
+                .other => std.debug.print(".", .{}),
             }
         }
         std.debug.print("\n", .{});
@@ -65,6 +81,11 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 const Pos = struct {
     x: usize,
     y: usize,
+};
+
+const Tile = union(enum) {
+    edge: void,
+    other: void,
 };
 
 test {
