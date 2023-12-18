@@ -107,6 +107,8 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
     std.debug.print("{} .. {}\n", .{ top_left, bottom_right });
 
+    std.mem.sort(Edge, vertical_edges.items, {}, moreLeft);
+
     for (horizontal_edges.items) |edge| std.debug.print("{}\n", .{edge});
     for (vertical_edges.items) |edge| std.debug.print("{}\n", .{edge});
 
@@ -140,26 +142,16 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     }
 
     for (0..height + 1) |y_index| {
-        const y = @as(i32, @intCast(y_index)) + top_left.y;
-
-        var edge_count: i32 = 0;
-
         for (0..width + 1) |x_index| {
+            const y = @as(i32, @intCast(y_index)) + top_left.y;
             const x = @as(i32, @intCast(x_index)) + top_left.x;
             const pos = Pos{ .x = x, .y = y };
 
             for (vertical_edges.items) |edge| {
                 if (edge.contains(pos)) {
-                    edge_count += 1;
+                    // TODO
                 }
             }
-        }
-
-        const is_even = @mod(edge_count, 2) == 0;
-
-        if (!is_even) {
-            std.debug.print("edge count {d}: {d}\n", .{ y_index, edge_count });
-            unreachable;
         }
     }
 
@@ -168,6 +160,10 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
 
 var width: usize = undefined;
 var height: usize = undefined;
+
+fn moreLeft(_: void, a: Edge, b: Edge) bool {
+    return a.start.x < b.start.x;
+}
 
 const Edge = struct {
     start: Pos,
