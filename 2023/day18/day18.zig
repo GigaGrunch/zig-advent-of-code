@@ -92,19 +92,24 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
+    var count: i32 = 0;
+
     std.debug.print("lagoon:\n", .{});
     for (0..height) |y| {
         for (0..width) |x| {
             const index = y * width + x;
             switch (map.items[index]) {
-                .Edge, .Inner => std.debug.print("#", .{}),
+                .Edge, .Inner => {
+                    std.debug.print("#", .{});
+                    count += 1;
+                },
                 .Outer => std.debug.print(".", .{}),
             }
         }
         std.debug.print("\n", .{});
     }
 
-    return 0;
+    return count;
 }
 
 const Pos = struct {
