@@ -56,20 +56,49 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
     for (top_left.y..bottom_right.y + 1) |y| {
         for (top_left.x..bottom_right.x + 1) |x| {
             if (utils.containsItem(visited_positions.items, Pos{ .x = x, .y = y })) {
-                try map.append(.{ .edge = undefined });
+                try map.append(.Edge);
             } else {
-                try map.append(.{ .other = undefined });
+                try map.append(.Outer);
             }
         }
     }
 
-    std.debug.print("width: {d}, height: {d}\n", .{ width, height });
+    std.debug.print("outline:\n", .{});
     for (0..height) |y| {
         for (0..width) |x| {
             const index = y * width + x;
             switch (map.items[index]) {
-                .edge => std.debug.print("#", .{}),
-                .other => std.debug.print(".", .{}),
+                .Edge, .Inner => std.debug.print("#", .{}),
+                .Outer => std.debug.print(".", .{}),
+            }
+        }
+        std.debug.print("\n", .{});
+    }
+
+    for (0..height) |y| {
+        var is_outside = true;
+
+        for (0..width) |x| {
+            const index = y * width + x;
+            switch (map.items[index]) {
+                .Edge => {
+                    if (x < width - 1) {
+                        const next = map.items[index + 1];
+                        if (next != .Edge) is_outside = !is_outside;
+                    }
+                },
+                .Outer, .Inner => map.items[index] = if (is_outside) .Outer else .Inner,
+            }
+        }
+    }
+
+    std.debug.print("lagoon:\n", .{});
+    for (0..height) |y| {
+        for (0..width) |x| {
+            const index = y * width + x;
+            switch (map.items[index]) {
+                .Edge, .Inner => std.debug.print("#", .{}),
+                .Outer => std.debug.print(".", .{}),
             }
         }
         std.debug.print("\n", .{});
@@ -83,9 +112,10 @@ const Pos = struct {
     y: usize,
 };
 
-const Tile = union(enum) {
-    edge: void,
-    other: void,
+const Tile = enum {
+    Edge,
+    Outer,
+    Inner,
 };
 
 test {
