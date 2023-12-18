@@ -14,9 +14,19 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !u64 {
 
     var lines_it = utils.tokenize(text, "\r\n");
     while (lines_it.next()) |line| {
-        var line_it = utils.tokenize(line, " ");
-        const dir = line_it.next().?[0];
-        const count = try utils.parseInt(usize, line_it.next().?);
+        var line_it = utils.tokenize(line, " ()#");
+        _ = line_it.next().?;
+        _ = line_it.next().?;
+
+        const hex = line_it.next().?;
+        const count = try std.fmt.parseInt(u64, hex[0..5], 16);
+        const dir: u8 = switch (hex[5]) {
+            '0' => 'R',
+            '1' => 'D',
+            '2' => 'L',
+            '3' => 'U',
+            else => unreachable,
+        };
 
         for (0..count) |_| {
             switch (dir) {
