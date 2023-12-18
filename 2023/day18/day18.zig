@@ -129,6 +129,31 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         std.debug.print("\n", .{});
     }
 
+    for (0..height + 1) |y_index| {
+        const y = @as(i32, @intCast(y_index)) + top_left.y;
+
+        var edge_count: i32 = 0;
+
+        for (horizontal_edges.items) |edge| {
+            if (edge.start.y == y) {
+                edge_count += 1;
+            }
+        }
+
+        for (0..width + 1) |x_index| {
+            const x = @as(i32, @intCast(x_index)) + top_left.x;
+            const pos = Pos{ .x = x, .y = y };
+
+            for (vertical_edges.items) |edge| {
+                if (edge.contains(pos)) {
+                    edge_count += 1;
+                }
+            }
+        }
+
+        std.debug.print("edge count {d}: {d}\n", .{ y_index, edge_count });
+    }
+
     return 0;
 }
 
