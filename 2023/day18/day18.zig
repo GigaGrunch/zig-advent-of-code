@@ -46,22 +46,86 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         }
     }
 
-    std.debug.print("horizontal edges:\n", .{});
+    var top_left = Pos{ .x = std.math.maxInt(i32), .y = std.math.maxInt(i32) };
+    var bottom_right = Pos{ .x = std.math.minInt(i32), .y = std.math.minInt(i32) };
+
+    for (horizontal_edges.items) |edge| {
+        const min_x = edge.start.x;
+        const max_x = edge.start.x + edge.length;
+        const y = edge.start.y;
+
+        top_left.x = @min(top_left.x, min_x);
+        top_left.y = @min(top_left.y, y);
+        bottom_right.x = @max(bottom_right.x, max_x);
+        bottom_right.y = @max(bottom_right.y, y);
+    }
+
+    for (vertical_edges.items) |edge| {
+        const x = edge.start.x;
+        const min_y = edge.start.y;
+        const max_y = edge.start.y + edge.length;
+
+        top_left.x = @min(top_left.x, x);
+        top_left.y = @min(top_left.y, min_y);
+        bottom_right.x = @max(bottom_right.x, x);
+        bottom_right.y = @max(bottom_right.y, max_y);
+    }
+
+    std.debug.print("{} .. {}\n", .{ top_left, bottom_right });
+
     for (horizontal_edges.items) |edge| std.debug.print("{}\n", .{edge});
-    std.debug.print("vertical edges:\n", .{});
     for (vertical_edges.items) |edge| std.debug.print("{}\n", .{edge});
+
+    width = @intCast(bottom_right.x - top_left.x);
+    height = @intCast(bottom_right.y - top_left.y);
+
+    for (0..height) |y_index| {
+        for (0..width) |x_index| {
+            const y = @as(i32, @intCast(y_index)) + top_left.y;
+            const x = @as(i32, @intCast(x_index)) + top_left.x;
+            const pos = Pos{ .x = x, .y = y };
+
+            var is_edge = false;
+
+            for (horizontal_edges.items) |edge| {
+                if (edge.contains(pos)) {
+                    is_edge = true;
+                }
+            }
+            for (vertical_edges.items) |edge| {
+                if (edge.contains(pos)) {
+                    is_edge = true;
+                }
+            }
+
+            const char: u8 = if (is_edge) '#' else '.';
+            std.debug.print("{c}", .{char});
+        }
+        std.debug.print("\n", .{});
+    }
 
     return 0;
 }
 
+var width: usize = undefined;
+var height: usize = undefined;
+
 const HorizontalEdge = struct {
     start: Pos,
     length: i32,
+
+    fn contains(edge: HorizontalEdge, pos: Pos) bool {
+        return edge.start.y == pos.y and pos.x >= edge.start.x and edge.start.x + edge.length > pos.x;
+    }
 };
 
 const VerticalEdge = struct {
     start: Pos,
     length: i32,
+
+    fn contains(edge: VerticalEdge, pos: Pos) bool {
+        return edge.start.x == pos.x and pos.y >= edge.start.y and edge.start.y + edge.length > pos.y;
+    }
 };
 
 const Pos = struct {
