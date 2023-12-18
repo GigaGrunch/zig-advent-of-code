@@ -66,15 +66,24 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             if (std.meta.eql(vertical_edge.start, right)) {
                 horizontal_edge.end.x += 1;
                 vertical_edge.start.y += 1;
-            } else if (std.meta.eql(vertical_edge.end, right)) {
-                horizontal_edge.end.x += 1;
-                vertical_edge.end.y -= 1;
             } else if (std.meta.eql(vertical_edge.start, left)) {
                 horizontal_edge.start.x -= 1;
                 vertical_edge.start.y += 1;
-            } else if (std.meta.eql(vertical_edge.end, left)) {
-                horizontal_edge.start.x -= 1;
-                vertical_edge.end.y -= 1;
+            }
+        }
+    }
+
+    for (vertical_edges.items) |*vertical_edge| {
+        var down = vertical_edge.end;
+        down.y += 1;
+
+        for (horizontal_edges.items) |*horizontal_edge| {
+            if (std.meta.eql(horizontal_edge.start, down)) {
+                vertical_edge.end.y += 1;
+                horizontal_edge.start.x += 1;
+            } else if (std.meta.eql(horizontal_edge.end, down)) {
+                vertical_edge.end.y += 1;
+                horizontal_edge.end.x -= 1;
             }
         }
     }
@@ -115,16 +124,17 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             for (horizontal_edges.items) |edge| {
                 if (edge.contains(pos)) {
                     is_edge = true;
+                    std.debug.print("-", .{});
                 }
             }
             for (vertical_edges.items) |edge| {
                 if (edge.contains(pos)) {
                     is_edge = true;
+                    std.debug.print("|", .{});
                 }
             }
 
-            const char: u8 = if (is_edge) '#' else '.';
-            std.debug.print("{c}", .{char});
+            if (!is_edge) std.debug.print(".", .{});
         }
         std.debug.print("\n", .{});
     }
@@ -133,12 +143,6 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
         const y = @as(i32, @intCast(y_index)) + top_left.y;
 
         var edge_count: i32 = 0;
-
-        for (horizontal_edges.items) |edge| {
-            if (edge.start.y == y) {
-                edge_count += 1;
-            }
-        }
 
         for (0..width + 1) |x_index| {
             const x = @as(i32, @intCast(x_index)) + top_left.x;
@@ -151,7 +155,12 @@ fn execute(text: []const u8, allocator: std.mem.Allocator) !i32 {
             }
         }
 
-        std.debug.print("edge count {d}: {d}\n", .{ y_index, edge_count });
+        const is_even = @mod(edge_count, 2) == 0;
+
+        if (!is_even) {
+            std.debug.print("edge count {d}: {d}\n", .{ y_index, edge_count });
+            unreachable;
+        }
     }
 
     return 0;
