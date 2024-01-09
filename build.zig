@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) !void {
         .source_file = .{ .path = "lib/utils.zig" },
     });
 
-    const years: []const []const u8 = &.{ "2015", "2023" };
+    const years: []const []const u8 = &.{ "2015", "2021", "2023" };
     for (years) |year| {
         var dir = try std.fs.cwd().openIterableDir(year, .{});
         var dir_it = dir.iterate();
